@@ -546,4 +546,46 @@ router.post('/auto-transform', async (req, res) => {
   }
 });
 
+// POST /api/zombie/announce-patient-group-0 - Make Patient Group 0 announcement
+router.post('/announce-patient-group-0', async (req, res) => {
+  try {
+    logger.info('📢 Making Patient Group 0 announcement cast');
+    
+    // Import the zombie bot to use its casting functionality
+    const ZombieBiteBot = require('../services/zombieBiteBot');
+    const bot = new ZombieBiteBot();
+    
+    const message = `🧟‍♂️ PATIENT GROUP 0 TRANSFORMATION COMPLETE! 🧟‍♂️
+
+Thanks to our brave testers for their sacrifice:
+@naruto007.eth @gandhionchain.eth @joseacabrerav @indefatigable @kday
+
+You are now the first zombies of the apocalypse! 10,000 $ZOMBIE tokens incoming as a thank you for helping test the infection! 🦷💰
+
+#ZOMBIEFICATION #Halloween`;
+
+    const result = await bot.sendPublicCast(message);
+    
+    if (result) {
+      res.json({
+        success: true,
+        message: 'Patient Group 0 announcement posted successfully',
+        data: result
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to post announcement cast'
+      });
+    }
+    
+  } catch (error) {
+    logger.error('Error making Patient Group 0 announcement:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to make Patient Group 0 announcement'
+    });
+  }
+});
+
 module.exports = router;

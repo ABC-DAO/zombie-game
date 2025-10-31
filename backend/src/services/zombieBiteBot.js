@@ -438,6 +438,33 @@ An ABC_DAO Halloween experiment 🎃`;
       logger.error('Error replying to cast:', error);
     }
   }
+
+  async sendPublicCast(message) {
+    try {
+      logger.info(`📢 Posting public cast: ${message}`);
+      
+      const response = await axios.post('https://api.neynar.com/v2/farcaster/cast', {
+        text: message,
+        signer_uuid: this.neynarUuid
+      }, {
+        headers: {
+          'accept': 'application/json',
+          'api_key': this.neynarApiKey,
+          'content-type': 'application/json'
+        }
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        logger.info('✅ Public cast posted successfully to Farcaster');
+        return response.data;
+      } else {
+        logger.error('❌ Failed to post public cast:', response.data);
+        throw new Error(`Farcaster API error: ${JSON.stringify(response.data)}`);
+      }
+    } catch (error) {
+      logger.error('Error posting public cast:', error);
+    }
+  }
 }
 
 module.exports = ZombieBiteBot;
