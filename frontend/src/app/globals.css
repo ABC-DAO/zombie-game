@@ -1,0 +1,330 @@
+/* ZOMBIEFICATION - Halloween Theme CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Force Dark Halloween Theme */
+@layer base {
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
+
+  html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    /* Force dark Halloween background */
+    background: linear-gradient(135deg, #0f0f0f 0%, #1a0000 25%, #000000 50%, #1a0a00 75%, #0f0f0f 100%) !important;
+    color: #f8fafc !important;
+  }
+
+  /* Force all text to be light */
+  h1, h2, h3, h4, h5, h6, p, span, div, a {
+    color: inherit !important;
+  }
+
+  /* Override any white backgrounds */
+  .bg-white {
+    background-color: rgba(20, 20, 20, 0.9) !important;
+  }
+
+  .text-black {
+    color: #f8fafc !important;
+  }
+
+  .text-gray-900 {
+    color: #f8fafc !important;
+  }
+
+  .text-gray-800 {
+    color: #e5e7eb !important;
+  }
+
+  /* Force dark backgrounds on all cards and containers */
+  .bg-slate-50,
+  .bg-slate-100,
+  .bg-gray-50,
+  .bg-gray-100 {
+    background-color: rgba(15, 15, 15, 0.9) !important;
+  }
+
+  /* Override any light theme remnants */
+  .border-gray-200,
+  .border-gray-300 {
+    border-color: rgba(239, 68, 68, 0.3) !important;
+  }
+
+  /* Ensure buttons are properly themed */
+  button {
+    color: inherit !important;
+  }
+
+  /* Force dark mode on inputs */
+  input, textarea, select {
+    background-color: rgba(20, 20, 20, 0.9) !important;
+    color: #f8fafc !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+  }
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  /* Halloween gradient background */
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a0000 25%, #000000 50%, #1a0a00 75%, #0a0a0a 100%);
+  color: #f8fafc;
+}
+
+/* Zombie Animation Keyframes */
+@keyframes zombie-glow {
+  0%, 100% { 
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.4);
+  }
+}
+
+@keyframes pulse-infection {
+  0%, 100% { 
+    background-color: rgba(220, 38, 38, 0.1);
+  }
+  50% { 
+    background-color: rgba(220, 38, 38, 0.3);
+  }
+}
+
+@keyframes spooky-float {
+  0%, 100% { 
+    transform: translateY(0px);
+  }
+  50% { 
+    transform: translateY(-10px);
+  }
+}
+
+/* Halloween Colors */
+:root {
+  --zombie-red: #dc2626;
+  --zombie-orange: #ea580c;
+  --zombie-dark: #450a0a;
+  --zombie-black: #0a0a0a;
+  --halloween-purple: #7c2d12;
+  --zombie-green: #166534;
+  --spooky-shadow: rgba(0, 0, 0, 0.8);
+}
+
+/* Custom Zombie Components */
+.zombie-card {
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 1rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.zombie-card:hover {
+  border-color: rgba(220, 38, 38, 0.6);
+  animation: zombie-glow 2s infinite;
+}
+
+.infection-alert {
+  animation: pulse-infection 1.5s infinite;
+}
+
+.spooky-text {
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.halloween-gradient {
+  background: linear-gradient(135deg, #dc2626 0%, #ea580c 50%, #92400e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.zombie-button {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border: 1px solid #991b1b;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px 0 rgba(220, 38, 38, 0.25);
+}
+
+.zombie-button:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  box-shadow: 0 6px 20px 0 rgba(220, 38, 38, 0.4);
+  transform: translateY(-2px);
+}
+
+.zombie-button:active {
+  transform: translateY(0px);
+}
+
+.human-button {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  border: 1px solid #166534;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px 0 rgba(22, 163, 74, 0.25);
+}
+
+.human-button:hover {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  box-shadow: 0 6px 20px 0 rgba(22, 163, 74, 0.4);
+  transform: translateY(-2px);
+}
+
+.spooky-float {
+  animation: spooky-float 3s ease-in-out infinite;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #dc2626, #ea580c);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #b91c1c, #dc2626);
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(220, 38, 38, 0.3);
+  color: #f8fafc;
+}
+
+/* Focus states */
+button:focus,
+input:focus,
+textarea:focus {
+  outline: 2px solid rgba(220, 38, 38, 0.5);
+  outline-offset: 2px;
+}
+
+/* Loading states */
+.loading-zombie {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-zombie::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.2), transparent);
+  animation: zombie-loading 1.5s infinite;
+}
+
+@keyframes zombie-loading {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Responsive Typography for Halloween */
+.zombie-title {
+  font-size: clamp(2rem, 8vw, 6rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.spooky-subtitle {
+  font-size: clamp(1rem, 4vw, 1.5rem);
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+/* Container adjustments */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 0 2rem;
+  }
+}
+
+/* Halloween-specific utilities */
+.bg-zombie-dark {
+  background-color: rgba(20, 20, 20, 0.95);
+}
+
+.bg-infection {
+  background: radial-gradient(circle at center, rgba(220, 38, 38, 0.1) 0%, transparent 70%);
+}
+
+.border-spooky {
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.text-zombie-glow {
+  color: #ef4444;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.shadow-spooky {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(220, 38, 38, 0.1);
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .zombie-card,
+  .zombie-button,
+  .human-button {
+    background: white !important;
+    border: 1px solid black !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+}

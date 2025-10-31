@@ -1,0 +1,12 @@
+# Cloudflare Pages Configuration for ZOMBIEFICATION Halloween Game
+# Halloween 2025 - Zombie Infection Game
+
+name = "zombiefication"
+compatibility_date = "2025-10-28"
+pages_build_output_dir = "out"
+
+[env.production]
+name = "zombiefication-production"
+
+[env.preview] 
+name = "zombiefication-preview"
