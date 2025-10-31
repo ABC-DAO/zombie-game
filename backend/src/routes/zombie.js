@@ -265,4 +265,119 @@ router.get('/leaderboard', async (req, res) => {
   }
 });
 
+// POST /api/zombie/claim - Claim zombie bites and become a zombie
+router.post('/claim', async (req, res) => {
+  try {
+    const { 
+      recipientWalletAddress,
+      recipientFid,
+      biteIds, // Array of bite IDs to claim
+      farcasterUsername
+    } = req.body;
+    
+    if (!recipientWalletAddress || !recipientFid || !biteIds || !Array.isArray(biteIds) || biteIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Recipient wallet, FID, and bite IDs array required to become zombie'
+      });
+    }
+    
+    logger.info(`🧟‍♂️ Processing zombie bite claims for FID ${recipientFid}: ${biteIds.length} bites`);
+    
+    const client = await db.getClient();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Get or create user record
+      let userResult = await client.query(
+        'SELECT * FROM users WHERE farcaster_fid = $1',
+        [recipientFid]
+      );
+      
+      let userId;
+      if (userResult.rows.length === 0) {
+        // Create new user
+        const newUserResult = await client.query(
+          'INSERT INTO users (farcaster_fid, farcaster_username, wallet_address) VALUES ($1, $2, $3) RETURNING id',
+          [recipientFid, farcasterUsername, recipientWalletAddress.toLowerCase()]
+        );
+        userId = newUserResult.rows[0].id;
+      } else {
+        userId = userResult.rows[0].id;
+        // Update wallet address if not set
+        if (!userResult.rows[0].wallet_address) {
+          await client.query(
+            'UPDATE users SET wallet_address = $1 WHERE id = $2',
+            [recipientWalletAddress.toLowerCase(), userId]
+          );
+        }
+      }
+      
+      // Get unclaimed bites for this user
+      const bitesResult = await client.query(`
+        SELECT * FROM zombie_bites 
+        WHERE human_fid = $1 AND status = 'PENDING' AND id = ANY($2::int[])
+      `, [recipientFid, biteIds]);
+      
+      if (bitesResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'No valid unclaimed bites found'
+        });
+      }
+      
+      const totalBiteAmount = bitesResult.rows.reduce((sum, bite) => sum + parseFloat(bite.bite_amount), 0);
+      
+      // Mark bites as claimed
+      await client.query(`
+        UPDATE zombie_bites 
+        SET status = 'CLAIMED', claimed_at = NOW()
+        WHERE id = ANY($1::int[])
+      `, [biteIds]);
+      
+      // 🧟‍♂️ CRITICAL: Make user a zombie by claiming bites!
+      await client.query(`
+        INSERT INTO zombie_status (user_id, is_zombie, became_zombie_at, total_bites_sent)
+        VALUES ($1, true, NOW(), 0)
+        ON CONFLICT (user_id) 
+        DO UPDATE SET 
+          is_zombie = true, 
+          became_zombie_at = COALESCE(zombie_status.became_zombie_at, NOW()),
+          updated_at = NOW()
+      `, [userId]);
+      
+      await client.query('COMMIT');
+      
+      logger.info(`✅ Zombie transformation complete! FID ${recipientFid} claimed ${biteIds.length} bites (${totalBiteAmount} $ZOMBIE)`);
+      
+      res.json({
+        success: true,
+        message: `🧟‍♂️ TRANSFORMATION COMPLETE! You have succumbed to ${biteIds.length} zombie bite(s) and joined the undead horde!`,
+        data: {
+          userId,
+          bitesClaimed: biteIds.length,
+          totalAmount: totalBiteAmount,
+          isNowZombie: true,
+          transformedAt: new Date().toISOString()
+        }
+      });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    logger.error('Error claiming zombie bites:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to claim zombie bites'
+    });
+  }
+});
+
 module.exports = router;

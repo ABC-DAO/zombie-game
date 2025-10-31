@@ -64,12 +64,12 @@ export const zombieApi = {
     message: `🧟‍♂️ Zombie bite from @${data.tipperFid}!`
   }),
   
-  claimTips: (data: {
+  claimBites: (data: {
     recipientWalletAddress: string;
     recipientFid: number;
-    tipIds: string[];
+    biteIds: string[];
     farcasterUsername?: string;
-  }) => api.post('/api/tipping/claim', data),
+  }) => api.post('/api/zombie/claim', data),
 };
 
 // Tipping API (Updated for zombie game)
@@ -98,12 +98,12 @@ export const tippingApi = {
     return api.get(`/api/tipping/sent/${address}${params.toString() ? `?${params}` : ''}`);
   },
   
-  claimTips: (data: {
+  claimBites: (data: {
     recipientWalletAddress: string;
     recipientFid: number;
-    tipIds: string[];
+    biteIds: string[];
     farcasterUsername?: string;
-  }) => api.post('/api/tipping/claim', data),
+  }) => api.post('/api/zombie/claim', data),
   
   getStats: () => api.get('/api/tipping/stats'),
 };

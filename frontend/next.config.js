@@ -11,7 +11,7 @@ const nextConfig = {
   distDir: 'out',
   generateBuildId: () => 'build',
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://happy-determination-production.up.railway.app'
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://zombie-game-production.up.railway.app'
   },
   async headers() {
     return [

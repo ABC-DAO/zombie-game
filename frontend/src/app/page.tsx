@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
-import { tippingApi, zombieApi } from '@/lib/api';
+import { zombieApi } from '@/lib/api';
 import { useWalletConnection } from '@/hooks/useWalletConnection';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 
@@ -152,26 +152,26 @@ export default function ZombieGamePage() {
     }
   };
 
-  const handleClaimTips = async () => {
+  const handleClaimBites = async () => {
     if (!farcasterUser?.fid || !address || pendingTips.length === 0) return;
     
     setClaiming(true);
     try {
-      const response = await tippingApi.claimTips({
+      const response = await zombieApi.claimBites({
         recipientWalletAddress: address,
         recipientFid: farcasterUser.fid,
-        tipIds: pendingTips.map(tip => tip.id),
+        biteIds: pendingTips.map(tip => tip.id),
         farcasterUsername: farcasterUser.username
       });
       
       if (response.data && response.data.success) {
-        // Refresh data after successful infection
+        // Refresh data after successful zombie transformation
         await fetchUserStatus();
         await fetchPendingTips();
         await fetchGameStats();
       }
     } catch (error) {
-      console.error('Error claiming tips (becoming zombie):', error);
+      console.error('Error claiming bites (becoming zombie):', error);
     } finally {
       setClaiming(false);
     }
@@ -302,7 +302,7 @@ export default function ZombieGamePage() {
 
                 <div className="grid grid-cols-1 gap-3">
                   <button
-                    onClick={handleClaimTips}
+                    onClick={handleClaimBites}
                     disabled={claiming}
                     className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-200 text-lg"
                   >

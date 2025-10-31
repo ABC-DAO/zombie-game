@@ -115,8 +115,8 @@ class ZombieBiteBot {
         text: cast.text
       });
 
-      // Parse the cast for bite targets
-      const targets = this.extractBiteTargets(cast.text);
+      // Parse the cast for bite targets (mentions + reply target)
+      const targets = this.extractBiteTargets(cast.text, cast);
       
       if (targets.length === 0) {
         logger.info('No valid bite targets found in cast');
@@ -148,12 +148,14 @@ class ZombieBiteBot {
     }
   }
 
-  extractBiteTargets(text) {
+  extractBiteTargets(text, cast) {
     // Look for @username mentions (excluding @zombie-bite itself)
-    const mentionRegex = /@(\w+)/g;
+    // Regex supports: letters, numbers, hyphens, underscores (valid Farcaster username chars)
+    const mentionRegex = /@([\w-]+)/g;
     const targets = [];
     let match;
 
+    // Extract mentioned usernames
     while ((match = mentionRegex.exec(text)) !== null) {
       const username = match[1];
       if (username !== this.botUsername && username !== 'zombie-bite') {
@@ -161,6 +163,18 @@ class ZombieBiteBot {
       }
     }
 
+    // If this is a reply, also bite the person being replied to
+    if (cast.parent_author && cast.parent_author.username) {
+      const replyTarget = cast.parent_author.username;
+      if (replyTarget !== this.botUsername && 
+          replyTarget !== 'zombie-bite' && 
+          !targets.includes(replyTarget)) {
+        targets.push(replyTarget);
+        logger.info(`🔄 Added reply target: @${replyTarget}`);
+      }
+    }
+
+    logger.info(`🔍 Extracted bite targets from "${text}": [${targets.join(', ')}]`);
     return targets;
   }
 
@@ -229,17 +243,20 @@ class ZombieBiteBot {
       // Check if game is active
       const gameActiveResult = await client.query('SELECT is_zombie_game_active() as is_active');
       const isGameActive = gameActiveResult.rows[0].is_active;
+      
+      logger.info(`🎮 Game status check: isGameActive=${isGameActive}, raw result:`, gameActiveResult.rows[0]);
 
       // If game hasn't started and this is Dylan (Patient Zero), start the game
       if (!isGameActive && zombieUser.farcaster_fid === 8573) {
-        await client.query('SELECT start_zombie_game($1)', [zombieUser.farcaster_fid]);
+        const gameStartResult = await client.query('SELECT start_zombie_game($1)', [zombieUser.farcaster_fid]);
         logger.info('🚨 GAME STARTED! Patient Zero Dylan has sent the first bite - 12 hour timer begins!');
+        logger.info('🎮 Game start result:', gameStartResult.rows[0]);
         
-        // Post game start announcement
+        // Post game start announcement (separate from transaction)
         await this.replyToCast(cast.hash, '🚨 THE ZOMBIE APOCALYPSE HAS BEGUN! 🚨\n\n12-hour infection period started! Tag @zombie-bite @username to spread the virus!\n\nGame ends at ' + new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString() + ' CST');
       } else if (!isGameActive) {
         // Game not active and not started by Patient Zero
-        await client.query('ROLLBACK');
+        await client.query('COMMIT'); // Don't rollback, just exit
         await this.replyToCast(cast.hash, '⏰ The zombie apocalypse hasn\'t started yet! Only Patient Zero can begin the infection...');
         return;
       }
@@ -252,28 +269,35 @@ class ZombieBiteBot {
         }
       });
 
-      const targetUser = userResponse.data?.result?.user;
+      const targetUser = userResponse.data?.user;
       if (!targetUser) {
         logger.warn(`Target user @${targetUsername} not found`);
-        await client.query('ROLLBACK');
+        await client.query('COMMIT'); // Don't rollback game state
+        await this.replyToCast(cast.hash, `❌ @${targetUsername} not found on Farcaster. Make sure the username is correct!`);
         return;
       }
 
       // Prevent self-biting
       if (targetUser.fid === zombieUser.farcaster_fid) {
-        await client.query('ROLLBACK');
+        await client.query('COMMIT'); // Don't rollback game state
+        await this.replyToCast(cast.hash, `🚫 You can't bite yourself! Find a human to infect instead! 🧟‍♂️`);
         return;
       }
+
+      // Get target user's wallet address for claims processing
+      const targetWalletAddress = targetUser.verified_addresses?.eth_addresses?.[0] || null;
+      logger.info(`🔍 Target user @${targetUsername}: FID=${targetUser.fid}, wallet=${targetWalletAddress || 'NONE'}`);
 
       // Create bite record
       await client.query(`
         INSERT INTO zombie_bites 
-        (zombie_user_id, human_fid, human_username, bite_amount, cast_hash, cast_url, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        (zombie_user_id, human_fid, human_username, human_wallet_address, bite_amount, cast_hash, cast_url, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `, [
         zombieUser.id,
         targetUser.fid,
         targetUser.username,
+        targetWalletAddress,
         1.0, // Always 1 $ZOMBIE
         cast.hash,
         `https://warpcast.com/${cast.author.username}/${cast.hash}`,

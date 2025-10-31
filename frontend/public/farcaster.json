@@ -1,5 +1,5 @@
 {
-  "frame": {
+  "miniapp": {
     "name": "ZOMBIEFICATION",
     "version": "1",
     "iconUrl": "https://zombie.epicdylan.com/ZOMBIES.png",
@@ -8,15 +8,18 @@
     "buttonTitle": "🧟‍♂️ Join Apocalypse",
     "splashImageUrl": "https://zombie.epicdylan.com/splash.png",
     "splashBackgroundColor": "#0a0a0a",
+    "webhookUrl": "https://zombie-game-production.up.railway.app/api/farcaster/webhook",
     "subtitle": "Halloween zombie infection game",
-    "description": "Join the Halloween zombie apocalypse on Farcaster! Tip $ZOMBIE to infect humans, claim tips to become undead, and share the final prize pool. Patient Zero starts the 12-hour infection period - will you survive or succumb to the bite? An ABC_DAO Halloween 2025 experiment.",
+    "description": "Join the Halloween zombie apocalypse on Farcaster. Tip ZOMBIE to infect humans, claim tips to become undead, and share the final prize pool. Patient Zero starts the 12-hour infection period - will you survive or succumb to the bite",
     "primaryCategory": "games",
     "screenshotUrls": [
       "https://zombie.epicdylan.com/image.png"
     ],
     "heroImageUrl": "https://zombie.epicdylan.com/ZOMBIES.png",
     "tags": [
-      "zombie"
+      "zombie",
+      "halloween",
+      "games"
     ],
     "tagline": "Spread the virus, win a prize",
     "ogDescription": "Join the zombie apocalypse! Tip ZOMBIE to bite humans and spread the infection.",
