@@ -454,4 +454,96 @@ router.post('/create-test-bites', async (req, res) => {
   }
 });
 
+// POST /api/zombie/auto-transform - Transform users into zombies directly (Patient Group 0)
+router.post('/auto-transform', async (req, res) => {
+  try {
+    const { users } = req.body;
+    
+    if (!users || !Array.isArray(users) || users.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'users array required'
+      });
+    }
+    
+    logger.info(`🧟‍♂️ Auto-transforming ${users.length} Patient Group 0 users into zombies`);
+    
+    const client = await db.getClient();
+    
+    try {
+      await client.query('BEGIN');
+      
+      const transformedUsers = [];
+      
+      for (const user of users) {
+        // Get or create user record
+        let userResult = await client.query(
+          'SELECT id FROM users WHERE farcaster_fid = $1',
+          [user.fid]
+        );
+        
+        let userId;
+        if (userResult.rows.length === 0) {
+          // Create new user
+          const newUserResult = await client.query(
+            'INSERT INTO users (farcaster_fid, farcaster_username, wallet_address) VALUES ($1, $2, $3) RETURNING id',
+            [user.fid, user.username, user.walletAddress.toLowerCase()]
+          );
+          userId = newUserResult.rows[0].id;
+        } else {
+          userId = userResult.rows[0].id;
+          // Update wallet address if needed
+          await client.query(
+            'UPDATE users SET wallet_address = COALESCE(wallet_address, $1), farcaster_username = COALESCE(farcaster_username, $2) WHERE id = $3',
+            [user.walletAddress.toLowerCase(), user.username, userId]
+          );
+        }
+        
+        // Transform into zombie
+        await client.query(`
+          INSERT INTO zombie_status (user_id, is_zombie, became_zombie_at, total_bites_sent)
+          VALUES ($1, true, NOW(), 0)
+          ON CONFLICT (user_id) 
+          DO UPDATE SET 
+            is_zombie = true, 
+            became_zombie_at = COALESCE(zombie_status.became_zombie_at, NOW()),
+            updated_at = NOW()
+        `, [userId]);
+        
+        transformedUsers.push({
+          fid: user.fid,
+          username: user.username,
+          walletAddress: user.walletAddress,
+          transformedAt: new Date().toISOString()
+        });
+      }
+      
+      await client.query('COMMIT');
+      
+      logger.info(`✅ Auto-transformed ${transformedUsers.length} users into zombies for Patient Group 0`);
+      
+      res.json({
+        success: true,
+        message: `🧟‍♂️ Patient Group 0 transformation complete! ${transformedUsers.length} users are now zombies.`,
+        data: {
+          transformedUsers
+        }
+      });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    logger.error('Error auto-transforming users:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to auto-transform users'
+    });
+  }
+});
+
 module.exports = router;
