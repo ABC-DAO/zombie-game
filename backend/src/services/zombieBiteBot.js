@@ -448,14 +448,23 @@ Game ends at ${new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString()} 
       // Get target user by username with error handling
       let userResponse;
       try {
+        logger.info(`🔍 Looking up user: @${targetUsername}`);
         userResponse = await axios.get(`https://api.neynar.com/v2/farcaster/user/by_username?username=${targetUsername}`, {
           headers: {
             'accept': 'application/json',
             'api_key': this.neynarApiKey
-          }
+          },
+          timeout: 10000
         });
+        logger.info(`✅ User lookup successful for @${targetUsername}`);
       } catch (userLookupError) {
-        logger.warn(`❌ Failed to lookup user @${targetUsername}:`, userLookupError.response?.status || userLookupError.message);
+        logger.error(`❌ Failed to lookup user @${targetUsername}:`, {
+          status: userLookupError.response?.status,
+          statusText: userLookupError.response?.statusText,
+          message: userLookupError.message,
+          data: userLookupError.response?.data,
+          code: userLookupError.code
+        });
         await client.query('COMMIT'); // Don't rollback game state
         try {
           await this.replyToCast(cast.hash, `❌ @${targetUsername} not found on Farcaster. Make sure the username is correct!`);
@@ -467,7 +476,7 @@ Game ends at ${new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString()} 
 
       const targetUser = userResponse.data?.user;
       if (!targetUser) {
-        logger.warn(`Target user @${targetUsername} not found in response`);
+        logger.warn(`❌ Target user @${targetUsername} not found in response:`, userResponse.data);
         await client.query('COMMIT'); // Don't rollback game state
         try {
           await this.replyToCast(cast.hash, `❌ @${targetUsername} not found on Farcaster. Make sure the username is correct!`);
