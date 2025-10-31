@@ -1,0 +1,16 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjg1NzMsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg1Mjk0MjMzMTViMTVEQTk2OTFBYkM1QjdjMWNiMEQwNDUwOUIyMmIwIn0",
+    "payload": "eyJkb21haW4iOiJ6b21iaWUuZXBpY2R5bGFuLmNvbSJ9",
+    "signature": "RweQGPIry0mH4rmXsnFUTQA8Ndi20ZdyAZ1dC0gQsSFM6tUjvBpyIrcWNdEOeADVWiI6AOV2MYOgO2CNeMw8dhw="
+  },
+  "miniapp": {
+    "name": "ZOMBIEFICATION",
+    "description": "🧟‍♂️ Halloween zombie infection game! Tip $ZOMBIE to spread the virus and claim your share of the prize pool. An ABC_DAO project for Halloween 2025.",
+    "icon": "https://zombie.epicdylan.com/ZOMBIES.png",
+    "url": "https://zombie.epicdylan.com",
+    "backgroundColor": "#0a0a0a",
+    "buttonTitle": "🧟‍♂️ Start Infection",
+    "splashImageUrl": "https://zombie.epicdylan.com/ZOMBIES.png"
+  }
+}
