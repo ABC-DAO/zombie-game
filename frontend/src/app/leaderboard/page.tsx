@@ -21,16 +21,37 @@ export default function ZombieTrackerPage() {
 
   useEffect(() => {
     fetchZombieStats();
-  }, []);
+    
+    // Force exit loading state after 10 seconds
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('⏰ Leaderboard loading timeout reached, forcing exit from loading state');
+        setLoading(false);
+      }
+    }, 10000);
+    
+    return () => clearTimeout(loadingTimeout);
+  }, [loading]);
 
   const fetchZombieStats = async () => {
     try {
+      // Add race condition with timeout for faster fallback
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Fetch timeout')), 6000)
+      );
+      
       const [statsResponse, leaderboardResponse] = await Promise.all([
-        zombieApi.getGameStats().catch(err => {
+        Promise.race([
+          zombieApi.getGameStats(),
+          timeoutPromise
+        ]).catch(err => {
           console.warn('Game stats fetch failed:', err.message);
           return { data: { data: null } };
         }),
-        zombieApi.getLeaderboard(10).catch(err => {
+        Promise.race([
+          zombieApi.getLeaderboard(10),
+          timeoutPromise
+        ]).catch(err => {
           console.warn('Leaderboard fetch failed:', err.message);
           return { data: { data: [] } };
         })

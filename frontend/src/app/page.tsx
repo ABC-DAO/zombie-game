@@ -62,17 +62,41 @@ export default function ZombieGamePage() {
     if (farcasterUser?.fid) {
       fetchUserStatus();
       fetchPendingTips();
+    } else if (isReady) {
+      // If Farcaster is ready but no user, stop loading
+      setLoading(false);
     }
-  }, [farcasterUser?.fid]);
+    
+    // Force exit loading state after 15 seconds
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('⏰ Loading timeout reached, forcing exit from loading state');
+        setLoading(false);
+      }
+    }, 15000);
+    
+    return () => clearTimeout(loadingTimeout);
+  }, [farcasterUser?.fid, isReady, loading]);
 
   const fetchGameStats = async () => {
     try {
+      // Add race condition with timeout for faster fallback
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Fetch timeout')), 8000)
+      );
+      
       const [gameStatusResponse, statsResponse] = await Promise.all([
-        zombieApi.getGameStatus().catch(err => {
+        Promise.race([
+          zombieApi.getGameStatus(),
+          timeoutPromise
+        ]).catch(err => {
           console.warn('Game status fetch failed:', err.message);
           return { data: { data: null } };
         }),
-        zombieApi.getGameStats().catch(err => {
+        Promise.race([
+          zombieApi.getGameStats(),
+          timeoutPromise
+        ]).catch(err => {
           console.warn('Game stats fetch failed:', err.message);
           return { data: { data: null } };
         })
