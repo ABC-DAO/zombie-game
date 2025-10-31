@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { zombieApi } from '@/lib/api';
 
 interface ZombieStats {
   totalZombies: number;
@@ -25,20 +26,26 @@ export default function ZombieTrackerPage() {
   const fetchZombieStats = async () => {
     try {
       const [statsResponse, leaderboardResponse] = await Promise.all([
-        fetch('/api/zombie/stats'),
-        fetch('/api/zombie/leaderboard?type=biters&limit=10')
+        zombieApi.getGameStats().catch(err => {
+          console.warn('Game stats fetch failed:', err.message);
+          return { data: { data: null } };
+        }),
+        zombieApi.getLeaderboard(10).catch(err => {
+          console.warn('Leaderboard fetch failed:', err.message);
+          return { data: { data: [] } };
+        })
       ]);
       
-      const stats = await statsResponse.json();
-      const leaderboard = await leaderboardResponse.json();
+      const stats = statsResponse.data?.data;
+      const leaderboard = leaderboardResponse.data?.data;
       
       setZombieStats({
-        totalZombies: stats.data?.totalZombies || 0,
-        totalHumans: stats.data?.totalHumans || 0,
+        totalZombies: stats?.totalZombies || 0,
+        totalHumans: stats?.totalHumans || 0,
         gameTimeRemaining: 'Halloween 2025 - Coming Soon!',
-        topSpreaders: leaderboard.data?.map((player: any) => ({
-          username: player.farcasterUsername,
-          infectionsCount: player.bites
+        topSpreaders: leaderboard?.map((player: any) => ({
+          username: player.farcasterUsername || player.username,
+          infectionsCount: player.totalBitesSent || player.bites || 0
         })) || []
       });
     } catch (error) {
