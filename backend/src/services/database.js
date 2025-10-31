@@ -118,15 +118,14 @@ async function initializeDatabase() {
       `);
       
       if (columnCheck.rows.length === 0) {
-        // Apply cure & succumb migration
-        const migrationPath = path.join(__dirname, '../../migrations/004-zombie-cure-and-succumb.sql');
-        if (fs.existsSync(migrationPath)) {
-          const migration = fs.readFileSync(migrationPath, 'utf8');
-          await client.query(migration);
-          logger.info('✅ Zombie cure & succumb migration applied successfully');
-        }
+        // Apply just the is_cured column addition
+        await client.query(`
+          ALTER TABLE zombie_status 
+          ADD COLUMN IF NOT EXISTS is_cured BOOLEAN DEFAULT false;
+        `);
+        logger.info('✅ is_cured column added to zombie_status table');
       } else {
-        logger.info('✅ Zombie migration already applied');
+        logger.info('✅ is_cured column already exists');
       }
     } catch (migrationError) {
       logger.error('❌ Zombie migration failed:', migrationError);
