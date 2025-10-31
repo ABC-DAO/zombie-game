@@ -22,11 +22,13 @@ if (process.env.DATABASE_URL) {
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/steaknstake',
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20, // Maximum number of connections
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  connectionTimeoutMillis: 10000, // Return error after 10 seconds if connection could not be established
-  acquireTimeoutMillis: 60000, // Return error after 60 seconds if acquiring connection from pool fails
-  statementTimeout: 60000, // Return error after 60 seconds if query takes too long
+  max: 10, // Reduced from 20 to prevent overwhelming the database
+  min: 2, // Keep minimum connections
+  idleTimeoutMillis: 60000, // Increased from 30 seconds to 60 seconds
+  connectionTimeoutMillis: 20000, // Increased from 10 to 20 seconds
+  acquireTimeoutMillis: 30000, // Reduced from 60 to 30 seconds
+  statementTimeout: 30000, // Reduced from 60 to 30 seconds
+  allowExitOnIdle: true, // Allow pool to exit if all connections are idle
 });
 
 // Handle pool errors
@@ -34,6 +36,26 @@ pool.on('error', (err) => {
   logger.error('Unexpected error on idle client', err);
   process.exit(-1);
 });
+
+// Add connection pool monitoring
+pool.on('connect', (client) => {
+  logger.info('New client connected', { totalCount: pool.totalCount, idleCount: pool.idleCount });
+});
+
+pool.on('remove', (client) => {
+  logger.info('Client removed', { totalCount: pool.totalCount, idleCount: pool.idleCount });
+});
+
+// Log pool stats periodically in development
+if (process.env.NODE_ENV === 'development') {
+  setInterval(() => {
+    logger.info('Pool stats', { 
+      totalCount: pool.totalCount, 
+      idleCount: pool.idleCount, 
+      waitingCount: pool.waitingCount 
+    });
+  }, 60000); // Every minute
+}
 
 // Test database connection
 async function testConnection() {
@@ -66,6 +88,49 @@ async function initializeDatabase() {
     } else {
       logger.warn('⚠️  Database schema file not found, skipping initialization');
     }
+
+    // Apply zombie migration if not already applied
+    try {
+      // Check if zombie tables exist
+      const tableCheck = await client.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'zombie_status'
+      `);
+      
+      if (tableCheck.rows.length === 0) {
+        // Apply zombie tables migration first
+        const zombieTablesPath = path.join(__dirname, '../../plans/zombie-tables-fixed.sql');
+        if (fs.existsSync(zombieTablesPath)) {
+          const zombieTables = fs.readFileSync(zombieTablesPath, 'utf8');
+          await client.query(zombieTables);
+          logger.info('✅ Zombie tables created successfully');
+        }
+      }
+
+      // Check if cure migration is needed
+      const columnCheck = await client.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'zombie_status' 
+        AND column_name = 'is_cured'
+      `);
+      
+      if (columnCheck.rows.length === 0) {
+        // Apply cure & succumb migration
+        const migrationPath = path.join(__dirname, '../../migrations/004-zombie-cure-and-succumb.sql');
+        if (fs.existsSync(migrationPath)) {
+          const migration = fs.readFileSync(migrationPath, 'utf8');
+          await client.query(migration);
+          logger.info('✅ Zombie cure & succumb migration applied successfully');
+        }
+      } else {
+        logger.info('✅ Zombie migration already applied');
+      }
+    } catch (migrationError) {
+      logger.error('❌ Zombie migration failed:', migrationError);
+    }
     
     client.release();
     return true;
@@ -75,13 +140,23 @@ async function initializeDatabase() {
   }
 }
 
-// Get a client from the pool
-async function getClient() {
-  try {
-    return await pool.connect();
-  } catch (error) {
-    logger.error('Error getting database client:', error);
-    throw error;
+// Get a client from the pool with retry logic
+async function getClient(retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await pool.connect();
+    } catch (error) {
+      logger.error(`Error getting database client (attempt ${attempt}/${retries}):`, error.message);
+      
+      if (attempt === retries) {
+        // On final attempt, throw the error
+        throw error;
+      }
+      
+      // Wait before retrying (exponential backoff)
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
 }
 
