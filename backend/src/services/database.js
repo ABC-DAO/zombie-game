@@ -22,12 +22,12 @@ if (process.env.DATABASE_URL) {
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/steaknstake',
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 10, // Reduced from 20 to prevent overwhelming the database
-  min: 2, // Keep minimum connections
-  idleTimeoutMillis: 60000, // Increased from 30 seconds to 60 seconds
-  connectionTimeoutMillis: 20000, // Increased from 10 to 20 seconds
-  acquireTimeoutMillis: 30000, // Reduced from 60 to 30 seconds
-  statementTimeout: 30000, // Reduced from 60 to 30 seconds
+  max: 20, // Increased from 10 to handle more concurrent requests
+  min: 3, // Increased minimum connections
+  idleTimeoutMillis: 60000, // Keep at 60 seconds
+  connectionTimeoutMillis: 15000, // Reduced from 20 to 15 seconds for faster failures
+  acquireTimeoutMillis: 20000, // Reduced timeout for quicker failures
+  statementTimeout: 25000, // Reduced from 30 to 25 seconds
   allowExitOnIdle: true, // Allow pool to exit if all connections are idle
 });
 
@@ -46,7 +46,7 @@ pool.on('remove', (client) => {
   logger.info('Client removed', { totalCount: pool.totalCount, idleCount: pool.idleCount });
 });
 
-// Log pool stats periodically in development
+// Log pool stats periodically in development (reduced frequency)
 if (process.env.NODE_ENV === 'development') {
   setInterval(() => {
     logger.info('Pool stats', { 
@@ -54,7 +54,7 @@ if (process.env.NODE_ENV === 'development') {
       idleCount: pool.idleCount, 
       waitingCount: pool.waitingCount 
     });
-  }, 60000); // Every minute
+  }, 300000); // Every 5 minutes instead of 1 minute
 }
 
 // Test database connection

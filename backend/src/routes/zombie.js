@@ -12,9 +12,42 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console()]
 });
 
+// Simple in-memory cache for game stats (5 minute TTL)
+const cache = {
+  gameStats: { data: null, expiry: 0 },
+  gameStatus: { data: null, expiry: 0 }
+};
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getFromCache(key) {
+  const cached = cache[key];
+  if (cached && cached.expiry > Date.now()) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCache(key, data) {
+  cache[key] = {
+    data: data,
+    expiry: Date.now() + CACHE_TTL
+  };
+}
+
 // GET /api/zombie/game-status - Get current game status
 router.get('/game-status', async (req, res) => {
   try {
+    // Check cache first
+    const cachedStatus = getFromCache('gameStatus');
+    if (cachedStatus) {
+      logger.info('🎃 Returning cached zombie game status');
+      return res.json({
+        success: true,
+        data: cachedStatus
+      });
+    }
+
     logger.info('🎃 Fetching zombie game status');
     
     // For now, return hardcoded values - will be dynamic when game launches
@@ -27,6 +60,9 @@ router.get('/game-status', async (req, res) => {
       timeRemaining: 'Halloween 2025 - Coming Soon!',
       currentPhase: 'pre_game'
     };
+
+    // Cache the result
+    setCache('gameStatus', gameStatus);
 
     res.json({
       success: true,
@@ -44,48 +80,63 @@ router.get('/game-status', async (req, res) => {
 // GET /api/zombie/stats - Get overall game statistics with timer
 router.get('/stats', async (req, res) => {
   try {
+    // Check cache first
+    const cachedStats = getFromCache('gameStats');
+    if (cachedStats) {
+      logger.info('🧟‍♂️ Returning cached zombie game stats');
+      return res.json({
+        success: true,
+        data: cachedStats
+      });
+    }
+
     logger.info('🧟‍♂️ Fetching zombie game stats');
     const client = await db.getClient();
     
     // Use the enhanced zombie_game_stats_with_timer view
+    let statsData;
     try {
       const result = await client.query('SELECT * FROM zombie_game_stats_with_timer');
       const stats = result.rows[0];
       
-      res.json({
-        success: true,
-        data: {
-          totalZombies: parseInt(stats.total_zombies || 0),
-          totalHumans: parseInt(stats.total_humans || 0),
-          totalBites: parseInt(stats.total_bites || 0),
-          pendingBites: parseInt(stats.pending_bites || 0),
-          claimedBites: parseInt(stats.claimed_bites || 0),
-          gameActive: !!stats.is_active,
-          gameStartedAt: stats.game_started_at,
-          gameEndsAt: stats.game_ends_at,
-          secondsRemaining: stats.seconds_remaining,
-          firstBiteByFid: stats.first_bite_by_fid
-        }
-      });
+      statsData = {
+        totalZombies: parseInt(stats.total_zombies || 0),
+        totalHumans: parseInt(stats.total_humans || 0),
+        totalBites: parseInt(stats.total_bites || 0),
+        pendingBites: parseInt(stats.pending_bites || 0),
+        claimedBites: parseInt(stats.claimed_bites || 0),
+        gameActive: !!stats.is_active,
+        gameStartedAt: stats.game_started_at,
+        gameEndsAt: stats.game_ends_at,
+        secondsRemaining: stats.seconds_remaining,
+        firstBiteByFid: stats.first_bite_by_fid
+      };
     } catch (dbError) {
       // View doesn't exist yet - return zeros
       logger.info('🚧 Zombie game stats view not found, returning default stats');
-      res.json({
-        success: true,
-        data: {
-          totalZombies: 0,
-          totalHumans: 0,
-          totalBites: 0,
-          pendingBites: 0,
-          claimedBites: 0,
-          gameActive: false,
-          gameStartedAt: null,
-          gameEndsAt: null,
-          secondsRemaining: null,
-          firstBiteByFid: null
-        }
-      });
+      statsData = {
+        totalZombies: 0,
+        totalHumans: 0,
+        totalBites: 0,
+        pendingBites: 0,
+        claimedBites: 0,
+        gameActive: false,
+        gameStartedAt: null,
+        gameEndsAt: null,
+        secondsRemaining: null,
+        firstBiteByFid: null
+      };
+    } finally {
+      client.release();
     }
+
+    // Cache the result
+    setCache('gameStats', statsData);
+
+    res.json({
+      success: true,
+      data: statsData
+    });
   } catch (error) {
     logger.error('Error fetching zombie stats:', error);
     res.status(500).json({

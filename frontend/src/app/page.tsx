@@ -68,8 +68,14 @@ export default function ZombieGamePage() {
   const fetchGameStats = async () => {
     try {
       const [gameStatusResponse, statsResponse] = await Promise.all([
-        zombieApi.getGameStatus(),
-        zombieApi.getGameStats()
+        zombieApi.getGameStatus().catch(err => {
+          console.warn('Game status fetch failed:', err.message);
+          return { data: { data: null } };
+        }),
+        zombieApi.getGameStats().catch(err => {
+          console.warn('Game stats fetch failed:', err.message);
+          return { data: { data: null } };
+        })
       ]);
       
       const gameStatus = gameStatusResponse.data?.data;
@@ -84,7 +90,7 @@ export default function ZombieGamePage() {
       });
     } catch (error) {
       console.error('Error fetching game stats:', error);
-      // Fallback to placeholder data
+      // Robust fallback to placeholder data
       setGameStats({
         totalZombies: 0,
         totalHumans: 0,
@@ -115,7 +121,7 @@ export default function ZombieGamePage() {
       });
     } catch (error) {
       console.error('Error fetching user status:', error);
-      // Fallback to default status
+      // Graceful fallback to default status on any error
       setUserStatus({
         walletAddress: address || '',
         isZombie: false,
@@ -148,6 +154,7 @@ export default function ZombieGamePage() {
       })));
     } catch (error) {
       console.error('Error fetching pending tips:', error);
+      // Always gracefully fallback to empty array
       setPendingTips([]);
     }
   };

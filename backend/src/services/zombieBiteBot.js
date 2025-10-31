@@ -51,11 +51,11 @@ class ZombieBiteBot {
       try {
         await this.checkForMentions();
         
-        // Check every 10 seconds
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        // Check every 30 seconds (reduced from 10s for better performance)
+        await new Promise(resolve => setTimeout(resolve, 30000));
       } catch (error) {
         logger.error('Error in zombie bite bot monitoring:', error);
-        await new Promise(resolve => setTimeout(resolve, 30000)); // Wait longer on error
+        await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute on error
       }
     }
   }
