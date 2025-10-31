@@ -31,7 +31,12 @@ const logger = winston.createLogger({
 // Middleware (Updated 2025-10-28)
 app.use(helmet());
 app.use(cors({
-  origin: ['https://steak.epicdylan.com', 'http://localhost:3000'],
+  origin: [
+    'https://steak.epicdylan.com', 
+    'https://zombie.epicdylan.com',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
