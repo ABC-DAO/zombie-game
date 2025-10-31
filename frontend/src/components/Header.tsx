@@ -9,7 +9,7 @@ export default function Header() {
   const navigation = [
     { name: 'Apocalypse', href: '/', icon: '🧟‍♂️' },
     { name: 'Bite Tracker', href: '/leaderboard', icon: '🦷' },
-    { name: 'Rules', href: '#rules', icon: '🎃' },
+    { name: 'How to Play', href: '/how-to-play', icon: '🎃' },
   ];
 
   return (

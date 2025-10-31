@@ -2,7 +2,7 @@ export default function Footer() {
   return (
     <footer className="bg-black border-t border-red-500/30 text-white">
       <div className="container mx-auto px-4 py-8">
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           {/* Brand */}
           <div>
             <div className="flex items-center space-x-3 mb-4">
@@ -22,8 +22,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-gray-400">
               <li><a href="/" className="hover:text-red-400 transition-colors">🧟‍♂️ Apocalypse</a></li>
               <li><a href="/leaderboard" className="hover:text-red-400 transition-colors">📊 Bite Tracker</a></li>
-              <li><a href="#rules" className="hover:text-red-400 transition-colors">📜 Game Rules</a></li>
-              <li><a href="#stats" className="hover:text-red-400 transition-colors">📈 Live Stats</a></li>
+              <li><a href="/how-to-play" className="hover:text-red-400 transition-colors">📜 How to Play</a></li>
             </ul>
           </div>
 
@@ -47,19 +46,18 @@ export default function Footer() {
                 </span>
               </li>
               <li><a href="https://github.com/ABC-DAO/zombie-game" className="hover:text-orange-400 transition-colors">💀 GitHub</a></li>
-              <li><a href="#" className="hover:text-orange-400 transition-colors">📜 Game Rules</a></li>
             </ul>
           </div>
 
-          {/* Spooky Community */}
+          {/* Halloween Info */}
           <div>
-            <h3 className="font-semibold mb-4 text-purple-400">🕸️ Community</h3>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-purple-400 transition-colors">🦇 Farcaster</a></li>
-              <li><a href="#" className="hover:text-purple-400 transition-colors">👻 Discord</a></li>
-              <li><a href="#" className="hover:text-purple-400 transition-colors">🕷️ Twitter</a></li>
-              <li><a href="#" className="hover:text-purple-400 transition-colors">🎃 Telegram</a></li>
-            </ul>
+            <h3 className="font-semibold mb-4 text-purple-400">🎃 Halloween 2025</h3>
+            <div className="space-y-2 text-sm text-gray-400">
+              <div>🧟‍♂️ Limited time event</div>
+              <div>🦷 Tag @zombie-bite to spread infection</div>
+              <div>💀 Built by ABC DAO</div>
+              <div>🕸️ Forked from SteakNStake</div>
+            </div>
           </div>
         </div>
 

@@ -48,10 +48,6 @@ export default function ZombieGamePage() {
   } = useFarcasterMiniApp();
   
   const isFarcasterAuthenticated = !!farcasterUser;
-  const farcasterLogin = async () => {
-    // TODO: Implement login functionality
-    console.log('Farcaster login requested');
-  };
 
   const [gameStats, setGameStats] = useState<ZombieGameStats | null>(null);
   const [userStatus, setUserStatus] = useState<UserInfectionStatus | null>(null);
@@ -250,12 +246,14 @@ export default function ZombieGamePage() {
           <div className="bg-black/50 border border-red-500/30 rounded-3xl p-6 mb-6 text-center">
             <div className="text-6xl mb-4">🎃</div>
             <h2 className="text-xl font-bold mb-3 text-red-400">Join the Apocalypse</h2>
-            <button
-              onClick={farcasterLogin}
-              className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl text-lg"
-            >
-              🧟‍♂️ Connect Farcaster
-            </button>
+            <div className="text-center">
+              <div className="text-lg font-bold text-red-400 mb-2">
+                🧟‍♂️ Open in Farcaster
+              </div>
+              <div className="text-sm text-gray-400">
+                This game must be played within Farcaster
+              </div>
+            </div>
           </div>
         ) : (
           <>
@@ -375,11 +373,13 @@ export default function ZombieGamePage() {
                 <h3 className="text-xl font-bold mb-4 text-red-400">
                   Zombie Powers Active
                 </h3>
-                <button className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-200 text-lg">
-                  🦷 Bite Humans
-                </button>
-                <div className="text-xs text-gray-400 mt-2">
-                  Tag @zombie-bite @username in Farcaster
+                <div className="text-center">
+                  <div className="text-lg font-bold text-red-400 mb-2">
+                    🦷 Bite Humans on Farcaster
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    Tag @zombie-bite @username in your posts
+                  </div>
                 </div>
               </div>
             )}
