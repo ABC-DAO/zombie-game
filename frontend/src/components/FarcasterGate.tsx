@@ -41,12 +41,12 @@ export function FarcasterGate({ children }: FarcasterGateProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-black flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-red-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-2xl">🥩</span>
+          <div className="w-16 h-16 bg-gradient-to-br from-red-600 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+            <span className="text-white text-2xl">🧟‍♂️</span>
           </div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-300">🧟‍♂️ Loading zombie apocalypse...</p>
         </div>
       </div>
     )
@@ -61,33 +61,36 @@ export function FarcasterGate({ children }: FarcasterGateProps) {
 
 function ComingSoonPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-black flex items-center justify-center p-4">
       <div className="max-w-md mx-auto text-center">
         {/* Logo */}
-        <div className="w-24 h-24 bg-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-          <span className="text-white text-4xl">🥩</span>
+        <div className="w-24 h-24 bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg border border-red-500/30">
+          <span className="text-white text-4xl">🧟‍♂️</span>
         </div>
         
         {/* Title */}
-        <h1 className="text-4xl font-black text-red-600 mb-4">
-          SteakNStake
+        <h1 className="text-4xl font-black text-transparent bg-gradient-to-r from-red-500 via-orange-500 to-red-600 bg-clip-text mb-4">
+          ZOMBIEFICATION
         </h1>
         
         {/* Subtitle */}
-        <p className="text-xl text-gray-700 mb-6">
-          Social Staking meets Farcaster Tipping
+        <p className="text-xl text-gray-300 mb-2">
+          An ABC_DAO Project for Halloween 2025
+        </p>
+        <p className="text-lg text-red-400 mb-6">
+          Zombie Infection Game on Farcaster
         </p>
         
         {/* Coming Soon Message */}
-        <div className="bg-white rounded-xl p-6 shadow-lg mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-3">
-            🚀 Coming Soon
+        <div className="bg-black/40 backdrop-blur-sm border border-red-500/30 rounded-xl p-6 shadow-lg mb-8">
+          <h2 className="text-2xl font-bold text-red-400 mb-3">
+            🎃 Halloween Apocalypse
           </h2>
-          <p className="text-gray-600 mb-4">
-            SteakNStake is exclusively available within the Farcaster ecosystem.
+          <p className="text-gray-300 mb-4">
+            ZOMBIEFICATION is exclusively available within the Farcaster ecosystem.
           </p>
-          <p className="text-sm text-gray-500">
-            Access SteakNStake through Warpcast or other Farcaster clients to stake $STEAK and tip your favorite creators!
+          <p className="text-sm text-gray-400">
+            Access the zombie infection game through Warpcast to tip $ZOMBIE, bite humans, and join the undead horde!
           </p>
         </div>
         
@@ -97,24 +100,25 @@ function ComingSoonPage() {
             href="https://warpcast.com" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="block w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            className="block w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg"
           >
-            📱 Get Warpcast
+            🧟‍♂️ Get Warpcast
           </a>
           <a 
             href="https://farcaster.xyz" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="block w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            className="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg"
           >
-            🌐 Learn about Farcaster
+            🦇 Learn about Farcaster
           </a>
         </div>
         
         {/* Footer */}
-        <div className="mt-8 text-xs text-gray-500">
-          <p>Built for the Farcaster community</p>
-          <p className="mt-1">🥩 Stake, Earn, Tip, Repeat</p>
+        <div className="mt-8 text-xs text-gray-400">
+          <p>🧠 Built for the Farcaster community by ABC_DAO</p>
+          <p className="mt-1">🦷 Bite, Infect, Spread, Survive</p>
+          <p className="mt-2 text-red-500 font-bold">Halloween 2025 Limited Edition</p>
         </div>
       </div>
     </div>
