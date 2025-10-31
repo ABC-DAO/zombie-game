@@ -1,9 +1,11 @@
 {
+  
   "accountAssociation": {
-    "header": "eyJmaWQiOjg1NzMsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgxOEE4NWFkMzQxYjJENkEyYmQ2N2ZiYjEwNEI0ODI3QjkyMmEyQTNjIn0",
-    "payload": "eyJkb21haW4iOiJzdGVhay5lcGljZHlsYW4uY29tIn0",
-    "signature": "ueC90Bzixwoue6z43di155NEot4lT9JkEoN0SBpbHP970nxBKnvZUVzQU4i68NrWqP5NYLN5kav/cSkHb3I4PBw="
+    "header": "eyJmaWQiOjg1NzMsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg1Mjk0MjMzMTViMTVEQTk2OTFBYkM1QjdjMWNiMEQwNDUwOUIyMmIwIn0",
+    "payload": "eyJkb21haW4iOiJ6b21iaWUuZXBpY2R5bGFuLmNvbSJ9",
+    "signature": "RweQGPIry0mH4rmXsnFUTQA8Ndi20ZdyAZ1dC0gQsSFM6tUjvBpyIrcWNdEOeADVWiI6AOV2MYOgO2CNeMw8dhw="
   },
+
   "miniapp": {
     "version": "1",
     "name": "Steak 'n' Stake",
