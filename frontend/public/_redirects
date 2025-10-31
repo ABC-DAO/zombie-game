@@ -1,5 +1,3 @@
 # Cloudflare Pages redirects for Next.js static export
-# Don't redirect existing files
-/api/frame /api/frame/index.html 200
 # Let Next.js handle routing
 /leaderboard /leaderboard/index.html 200

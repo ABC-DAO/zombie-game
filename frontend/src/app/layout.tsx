@@ -47,7 +47,6 @@ export const metadata: Metadata = {
     'fc:frame:button:1': '🧟‍♂️ Join Apocalypse',
     'fc:frame:button:1:action': 'link',
     'fc:frame:button:1:target': 'https://zombie.epicdylan.com',
-    'fc:frame:post_url': 'https://zombie.epicdylan.com/api/frame',
     // Farcaster Mini App metadata
     'fc:miniapp': JSON.stringify({
       version: '1',
