@@ -588,4 +588,65 @@ You are now the first zombies of the apocalypse! 10,000 $ZOMBIE tokens incoming 
   }
 });
 
+// POST /api/zombie/send-patient-rewards - Send 10k ZOMBIE to Patient Group 0
+router.post('/send-patient-rewards', async (req, res) => {
+  try {
+    logger.info('💰 Sending Patient Group 0 rewards');
+    
+    const patientGroup0 = [
+      { username: 'naruto007.eth', address: '0xf90d9375033d4ff284f88fc84ed97a416c6502df' },
+      { username: 'gandhionchain.eth', address: '0xb6d082e8d9feee1b7eaf2f044cbb8c0943fedb00' },
+      { username: 'joseacabrerav', address: '0x0ac7d72e0a6e21fb840bbd07f2b8d0763b65c2c3' },
+      { username: 'indefatigable', address: '0xc2771d8de241fcc2304d4c0e4574b1f41b388527' },
+      { username: 'kday', address: '0x77452a8ea2eebc0f79315150241d33c0ec0f6812' }
+    ];
+
+    // Import token transfer service
+    const { sendZombieTokens } = require('../services/tokenService');
+    
+    const results = [];
+    for (const user of patientGroup0) {
+      try {
+        const txHash = await sendZombieTokens(user.address, '10000');
+        results.push({
+          username: user.username,
+          address: user.address,
+          amount: '10000',
+          txHash,
+          success: true
+        });
+        logger.info(`✅ Sent 10,000 ZOMBIE to ${user.username}: ${txHash}`);
+      } catch (error) {
+        logger.error(`❌ Failed to send ZOMBIE to ${user.username}:`, error);
+        results.push({
+          username: user.username,
+          address: user.address,
+          amount: '10000',
+          error: error.message,
+          success: false
+        });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    
+    res.json({
+      success: true,
+      message: `Patient Group 0 rewards processed: ${successCount}/${patientGroup0.length} successful`,
+      data: {
+        totalSent: successCount,
+        totalFailed: patientGroup0.length - successCount,
+        results
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error sending Patient Group 0 rewards:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send Patient Group 0 rewards'
+    });
+  }
+});
+
 module.exports = router;
