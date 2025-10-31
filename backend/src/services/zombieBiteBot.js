@@ -253,7 +253,13 @@ class ZombieBiteBot {
         logger.info('🎮 Game start result:', gameStartResult.rows[0]);
         
         // Post game start announcement (separate from transaction)
-        await this.replyToCast(cast.hash, '🚨 THE ZOMBIE APOCALYPSE HAS BEGUN! 🚨\n\n12-hour infection period started! Tag @zombie-bite @username to spread the virus!\n\nGame ends at ' + new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString() + ' CST');
+        await this.replyToCast(cast.hash, `🚨 THE ZOMBIE APOCALYPSE HAS BEGUN! 🚨
+
+12-hour infection period started! Tag @zombie-bite @username to spread the virus!
+
+Game ends at ${new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString()} CST
+
+🎃 Play ZOMBIEFICATION: https://farcaster.xyz/miniapps/pK1eGntYKwcA/zombification`);
       } else if (!isGameActive) {
         // Game not active and not started by Patient Zero
         await client.query('COMMIT'); // Don't rollback, just exit
@@ -315,8 +321,10 @@ class ZombieBiteBot {
 
       logger.info(`🧟‍♂️ BITE RECORDED: ${zombieUser.farcaster_username} bit @${targetUsername}`);
 
-      // Reply to the cast
-      await this.replyToCast(cast.hash, `🧟‍♂️ BITE SUCCESSFUL! @${targetUsername} has been bitten and can claim 1 $ZOMBIE at zombie.epicdylan.com to join the undead horde!`);
+      // Reply to the cast with mini-app link
+      await this.replyToCast(cast.hash, `🧟‍♂️ BITE SUCCESSFUL! @${targetUsername} has been bitten and can claim 1 $ZOMBIE to join the undead horde!
+
+🎃 Play ZOMBIEFICATION: https://farcaster.xyz/miniapps/pK1eGntYKwcA/zombification`);
 
     } catch (error) {
       await client.query('ROLLBACK');
@@ -382,9 +390,11 @@ Thank you to everyone who participated in ZOMBIEFICATION - Halloween 2025!
 
 📊 Final Stats:
 🦷 Total Bites: ${totalBites}
-🧟‍♂️ Zombies Created: [Check zombie.epicdylan.com]
+🧟‍♂️ Zombies Created: [Check stats below]
 
 🎁 Stay tuned for reward distribution announcements!
+
+🎃 View Results: https://farcaster.xyz/miniapps/pK1eGntYKwcA/zombification
 
 An ABC_DAO Halloween experiment 🎃`;
 
