@@ -46,7 +46,7 @@ export const zombieApi = {
   getPlayerStatus: (fid: number) => api.get(`/api/zombie/status/${fid}`),
   getPendingTips: (fid: number) => api.get(`/api/zombie/pending/${fid}`),
   
-  // Game actions
+  // Game actions (use existing tipping endpoints)
   sendTip: (data: {
     tipperWalletAddress: string;
     tipperFid: number;
@@ -54,14 +54,22 @@ export const zombieApi = {
     recipientUsername?: string;
     castHash?: string;
     castUrl?: string;
-  }) => api.post('/api/zombie/tip', data),
+  }) => api.post('/api/tipping/send', {
+    tipperWalletAddress: data.tipperWalletAddress,
+    recipientFid: data.recipientFid,
+    recipientUsername: data.recipientUsername,
+    tipAmount: 1, // Always 1 $ZOMBIE for bites
+    castHash: data.castHash,
+    castUrl: data.castUrl,
+    message: `🧟‍♂️ Zombie bite from @${data.tipperFid}!`
+  }),
   
   claimTips: (data: {
     recipientWalletAddress: string;
     recipientFid: number;
     tipIds: string[];
     farcasterUsername?: string;
-  }) => api.post('/api/zombie/claim', data),
+  }) => api.post('/api/tipping/claim', data),
 };
 
 // Tipping API (Updated for zombie game)

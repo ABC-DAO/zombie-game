@@ -47,40 +47,29 @@ router.get('/stats', async (req, res) => {
     logger.info('🧟‍♂️ Fetching zombie game stats');
     const client = await db.getClient();
     
-    // Try to get stats from zombie_players table (may not exist yet)
+    // Use the zombie_game_stats view we created
     try {
-      const statsQuery = `
-        SELECT 
-          COUNT(CASE WHEN is_zombie = true THEN 1 END) as total_zombies,
-          COUNT(CASE WHEN is_zombie = false THEN 1 END) as total_humans,
-          COUNT(*) as total_players,
-          COALESCE(SUM(tips_sent), 0) as total_bites,
-          COALESCE(SUM(tips_received), 0) as total_bites_received
-        FROM zombie_players
-      `;
-      
-      const result = await client.query(statsQuery);
+      const result = await client.query('SELECT * FROM zombie_game_stats');
       const stats = result.rows[0];
       
       res.json({
         success: true,
         data: {
-          totalZombies: parseInt(stats.total_zombies),
-          totalHumans: parseInt(stats.total_humans),
-          totalPlayers: parseInt(stats.total_players),
-          totalBites: parseInt(stats.total_bites),
-          totalBitesReceived: parseInt(stats.total_bites_received)
+          totalZombies: parseInt(stats.total_zombies || 0),
+          totalHumans: parseInt(stats.total_humans || 0),
+          totalBites: parseInt(stats.total_bites || 0),
+          pendingBites: parseInt(stats.pending_bites || 0),
+          claimedBites: parseInt(stats.claimed_bites || 0)
         }
       });
     } catch (dbError) {
-      // Table doesn't exist yet - return zeros
-      logger.info('🚧 Zombie players table not found, returning default stats');
+      // View doesn't exist yet - return zeros
+      logger.info('🚧 Zombie game stats view not found, returning default stats');
       res.json({
         success: true,
         data: {
           totalZombies: 0,
           totalHumans: 0,
-          totalPlayers: 0,
           totalBites: 0,
           totalBitesReceived: 0
         }
@@ -106,16 +95,17 @@ router.get('/status/:fid', async (req, res) => {
     try {
       const playerQuery = `
         SELECT 
-          wallet_address,
-          farcaster_fid,
-          farcaster_username,
-          is_zombie,
-          became_zombie_at,
-          tips_sent,
-          tips_received,
-          created_at
-        FROM zombie_players 
-        WHERE farcaster_fid = $1
+          u.wallet_address,
+          u.farcaster_fid,
+          u.farcaster_username,
+          zs.is_zombie,
+          zs.became_zombie_at,
+          zs.total_bites_sent,
+          u.created_at,
+          (SELECT COUNT(*) FROM zombie_bites WHERE human_fid = $1) as bites_received
+        FROM users u
+        LEFT JOIN zombie_status zs ON u.id = zs.user_id
+        WHERE u.farcaster_fid = $1
       `;
       
       const result = await client.query(playerQuery, [parseInt(fid)]);
@@ -137,12 +127,12 @@ router.get('/status/:fid', async (req, res) => {
         res.json({
           success: true,
           data: {
-            isZombie: player.is_zombie,
+            isZombie: !!player.is_zombie,
             isInGame: true,
             walletAddress: player.wallet_address,
             farcasterFid: player.farcaster_fid,
             farcasterUsername: player.farcaster_username,
-            tipsSent: parseInt(player.tips_sent) || 0,
+            tipsSent: parseInt(player.total_bites_sent) || 0,
             tipsReceived: parseInt(player.tips_received) || 0,
             becameZombieAt: player.became_zombie_at,
             joinedAt: player.created_at
@@ -180,32 +170,22 @@ router.get('/pending/:fid', async (req, res) => {
     
     const client = await db.getClient();
     
-    // Get unclaimed tips (bites) from farcaster_tips table
+    // Use the pending_bites_view we created
     const pendingQuery = `
-      SELECT 
-        ft.id,
-        ft.tip_amount,
-        ft.created_at,
-        ft.cast_hash,
-        u.farcaster_username as tipper_username,
-        ft.created_at + INTERVAL '4 hours' as expires_at
-      FROM farcaster_tips ft
-      LEFT JOIN users u ON ft.tipper_user_id = u.id
-      LEFT JOIN tip_claims tc ON ft.id = tc.tip_id
-      WHERE ft.recipient_fid = $1 
-        AND tc.id IS NULL 
-        AND ft.created_at + INTERVAL '4 hours' > NOW()
-      ORDER BY ft.created_at DESC
+      SELECT * FROM pending_bites_view 
+      WHERE human_fid = $1
+      ORDER BY sent_at DESC
     `;
     
     const result = await client.query(pendingQuery, [parseInt(fid)]);
     
-    const pendingBites = result.rows.map(tip => ({
-      id: tip.id.toString(),
-      tipperUsername: tip.tipper_username || 'Anonymous Zombie',
-      amount: parseFloat(tip.tip_amount),
-      expiresAt: tip.expires_at.toISOString(),
-      castHash: tip.cast_hash
+    const pendingBites = result.rows.map(bite => ({
+      id: bite.id.toString(),
+      tipperUsername: bite.zombie_username || 'Anonymous Zombie',
+      amount: parseFloat(bite.bite_amount),
+      sentAt: bite.sent_at.toISOString(),
+      castHash: bite.cast_hash,
+      castUrl: bite.cast_url
     }));
     
     res.json({
@@ -224,44 +204,25 @@ router.get('/pending/:fid', async (req, res) => {
 // GET /api/zombie/leaderboard - Get top zombie biters
 router.get('/leaderboard', async (req, res) => {
   try {
-    const { limit = 50, type = 'biters' } = req.query;
+    const { limit = 50 } = req.query;
     logger.info('🏆 Fetching zombie leaderboard');
     
     const client = await db.getClient();
     
     try {
-      let leaderboardQuery;
-      if (type === 'biters') {
-        // Top biters (zombies who have bitten the most humans)
-        leaderboardQuery = `
-          SELECT 
-            farcaster_username,
-            farcaster_fid,
-            wallet_address,
-            tips_sent as bites_given,
-            became_zombie_at,
-            ROW_NUMBER() OVER (ORDER BY tips_sent DESC, became_zombie_at ASC) as rank
-          FROM zombie_players 
-          WHERE is_zombie = true AND tips_sent > 0
-          ORDER BY tips_sent DESC, became_zombie_at ASC
-          LIMIT $1
-        `;
-      } else {
-        // Most bitten (humans who received the most bites before turning)
-        leaderboardQuery = `
-          SELECT 
-            farcaster_username,
-            farcaster_fid,
-            wallet_address,
-            tips_received as bites_received,
-            became_zombie_at,
-            ROW_NUMBER() OVER (ORDER BY tips_received DESC) as rank
-          FROM zombie_players 
-          WHERE tips_received > 0
-          ORDER BY tips_received DESC
-          LIMIT $1
-        `;
-      }
+      // Use the zombie_leaderboard view we created
+      const leaderboardQuery = `
+        SELECT 
+          farcaster_username,
+          farcaster_fid,
+          wallet_address,
+          total_bites_sent as bites_given,
+          bites_sent_count,
+          became_zombie_at,
+          ROW_NUMBER() OVER (ORDER BY total_bites_sent DESC, became_zombie_at ASC) as rank
+        FROM zombie_leaderboard
+        LIMIT $1
+      `;
       
       const result = await client.query(leaderboardQuery, [parseInt(limit)]);
       
