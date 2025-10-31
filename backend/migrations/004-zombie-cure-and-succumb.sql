@@ -192,7 +192,8 @@ WHERE zgs.id = 1;
 -- ===================================================================
 -- AUTO-UPDATE TRIGGER FOR GAME STATE
 -- ===================================================================
-CREATE TRIGGER IF NOT EXISTS trg_zombie_game_state_updated_at
+DROP TRIGGER IF EXISTS trg_zombie_game_state_updated_at ON zombie_game_state;
+CREATE TRIGGER trg_zombie_game_state_updated_at
 BEFORE UPDATE ON zombie_game_state
 FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
 
