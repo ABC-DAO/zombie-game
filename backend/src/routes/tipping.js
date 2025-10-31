@@ -525,51 +525,57 @@ router.post('/claim', async (req, res) => {
       }
       
       // 🧟‍♂️ ZOMBIE INFECTION: User becomes zombie by claiming tips!
-      // Note: zombie_players table needs to be created in database schema
       try {
+        // Check if user already has zombie status
         let zombieResult = await client.query(
-          'SELECT * FROM zombie_players WHERE farcaster_fid = $1',
-          [parseInt(recipientFid)]
+          'SELECT * FROM zombie_status WHERE user_id = $1',
+          [user.id]
         );
         
         if (zombieResult.rows.length === 0) {
-          // New zombie infection!
+          // New zombie infection! Create zombie status
           await client.query(`
-            INSERT INTO zombie_players 
-            (wallet_address, farcaster_fid, farcaster_username, is_zombie, became_zombie_at, tips_received)
-            VALUES ($1, $2, $3, $4, $5, $6)
-          `, [
-            recipientWalletAddress.toLowerCase(), 
-            parseInt(recipientFid), 
-            farcasterUsername, 
-            true, 
-            new Date(), 
-            tipIds.length
-          ]);
+            INSERT INTO zombie_status 
+            (user_id, is_zombie, became_zombie_at, total_bites_sent)
+            VALUES ($1, $2, $3, $4)
+          `, [user.id, true, new Date(), 0]);
           
           logger.info(`🧟‍♂️ NEW ZOMBIE CREATED: ${farcasterUsername} (FID: ${recipientFid}) has succumbed to the bite!`);
         } else if (!zombieResult.rows[0].is_zombie) {
           // Convert human to zombie
           await client.query(`
-            UPDATE zombie_players 
-            SET is_zombie = true, became_zombie_at = $1, tips_received = tips_received + $2
-            WHERE farcaster_fid = $3
-          `, [new Date(), tipIds.length, parseInt(recipientFid)]);
+            UPDATE zombie_status 
+            SET is_zombie = true, became_zombie_at = $1, updated_at = $2
+            WHERE user_id = $3
+          `, [new Date(), new Date(), user.id]);
           
           logger.info(`🧟‍♂️ HUMAN BITTEN: ${farcasterUsername} (FID: ${recipientFid}) has become a zombie!`);
         } else {
-          // Already a zombie, just update tip count
-          await client.query(`
-            UPDATE zombie_players 
-            SET tips_received = tips_received + $1
-            WHERE farcaster_fid = $2
-          `, [tipIds.length, parseInt(recipientFid)]);
-          
+          // Already a zombie
           logger.info(`🧟‍♂️ ZOMBIE FEEDS: ${farcasterUsername} (FID: ${recipientFid}) consumed more brain matter!`);
         }
+
+        // Record each bite in the zombie_bites table
+        for (const tip of tipsResult.rows) {
+          await client.query(`
+            INSERT INTO zombie_bites 
+            (zombie_user_id, human_fid, human_username, bite_amount, cast_hash, cast_url, status, claimed_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `, [
+            tip.tipper_user_id, // The zombie who sent the tip
+            parseInt(recipientFid), // The human who claimed it
+            farcasterUsername,
+            tip.tip_amount,
+            tip.cast_hash,
+            tip.cast_url,
+            'CLAIMED',
+            new Date()
+          ]);
+        }
+        
       } catch (zombieError) {
-        // If zombie_players table doesn't exist yet, just log the infection
-        logger.info(`🧟‍♂️ INFECTION PENDING: ${farcasterUsername} (FID: ${recipientFid}) will become zombie once database is updated`);
+        logger.error('Error in zombie infection process:', zombieError);
+        // Don't fail the tip claim if zombie tracking fails
       }
       
       await client.query('COMMIT');
