@@ -588,6 +588,60 @@ You are now the first zombies of the apocalypse! 10,000 $ZOMBIE tokens incoming 
   }
 });
 
+// GET /api/zombie/wallet-info - Check bot wallet configuration
+router.get('/wallet-info', async (req, res) => {
+  try {
+    logger.info('🔍 Checking bot wallet configuration');
+    
+    // Check environment variables
+    const hasPrivateKey = !!process.env.BOT_PRIVATE_KEY;
+    const rpcUrl = process.env.BASE_RPC_URL || 'https://mainnet.base.org';
+    
+    if (!hasPrivateKey) {
+      return res.json({
+        success: false,
+        error: 'BOT_PRIVATE_KEY not configured',
+        config: {
+          hasPrivateKey: false,
+          rpcUrl
+        }
+      });
+    }
+
+    // Try to initialize token service
+    try {
+      const { getBotWalletBalance } = require('../services/tokenService');
+      const walletInfo = await getBotWalletBalance();
+      
+      res.json({
+        success: true,
+        message: 'Bot wallet configured successfully',
+        data: walletInfo,
+        config: {
+          hasPrivateKey: true,
+          rpcUrl
+        }
+      });
+    } catch (serviceError) {
+      res.json({
+        success: false,
+        error: `Token service error: ${serviceError.message}`,
+        config: {
+          hasPrivateKey: true,
+          rpcUrl
+        }
+      });
+    }
+    
+  } catch (error) {
+    logger.error('Error checking wallet info:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check wallet configuration'
+    });
+  }
+});
+
 // POST /api/zombie/send-patient-rewards - Send 10k ZOMBIE to Patient Group 0
 router.post('/send-patient-rewards', async (req, res) => {
   try {
@@ -601,8 +655,29 @@ router.post('/send-patient-rewards', async (req, res) => {
       { username: 'kday', address: '0x77452a8ea2eebc0f79315150241d33c0ec0f6812' }
     ];
 
+    // Check environment variables first
+    if (!process.env.BOT_PRIVATE_KEY) {
+      logger.error('❌ BOT_PRIVATE_KEY not configured');
+      return res.status(500).json({
+        success: false,
+        error: 'BOT_PRIVATE_KEY not configured in environment'
+      });
+    }
+
     // Import token transfer service
-    const { sendZombieTokens } = require('../services/tokenService');
+    const { sendZombieTokens, getBotWalletBalance } = require('../services/tokenService');
+    
+    // Check wallet balance first
+    try {
+      const walletInfo = await getBotWalletBalance();
+      logger.info('💰 Bot wallet info:', walletInfo);
+    } catch (balanceError) {
+      logger.error('❌ Error checking wallet balance:', balanceError);
+      return res.status(500).json({
+        success: false,
+        error: `Wallet balance check failed: ${balanceError.message}`
+      });
+    }
     
     const results = [];
     for (const user of patientGroup0) {
