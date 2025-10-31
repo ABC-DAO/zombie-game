@@ -187,41 +187,33 @@ export default function ZombieGamePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-black text-white">
-      {/* Halloween Header */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative z-10 max-w-7xl mx-auto px-4 py-16 text-center">
-          <div className="mb-8">
-            <h1 className="text-6xl md:text-8xl font-bold mb-4 text-transparent bg-gradient-to-r from-red-500 via-orange-500 to-red-600 bg-clip-text">
-              🧟‍♂️ ZOMBIEFICATION 🧟‍♀️
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-300 mb-2">
-              Halloween 2025 • Zombie Infection Game
-            </p>
-            <p className="text-lg text-red-400">
-              {gameStats?.gameTimeRemaining || 'Loading...'}
-            </p>
+      {/* Hero Section */}
+      <div className="relative px-4 py-8 text-center">
+        <div className="mb-6">
+          <div className="text-8xl mb-4">🧟‍♂️</div>
+          <h1 className="text-4xl md:text-6xl font-black mb-2 text-transparent bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text">
+            ZOMBIEFICATION
+          </h1>
+          <div className="text-orange-400 font-medium">
+            {gameStats?.gameTimeRemaining || 'Loading...'}
           </div>
+        </div>
 
-          {/* Game Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <div className="bg-red-900/30 backdrop-blur-sm border border-red-500/30 rounded-xl p-6">
-              <div className="text-3xl mb-2">🧟‍♂️</div>
-              <div className="text-2xl font-bold text-red-400">{gameStats?.totalZombies || 0}</div>
-              <div className="text-gray-300">Infected</div>
-            </div>
-            
-            <div className="bg-green-900/30 backdrop-blur-sm border border-green-500/30 rounded-xl p-6">
-              <div className="text-3xl mb-2">👤</div>
-              <div className="text-2xl font-bold text-green-400">{gameStats?.totalHumans || 0}</div>
-              <div className="text-gray-300">Surviving</div>
-            </div>
-            
-            <div className="bg-purple-900/30 backdrop-blur-sm border border-purple-500/30 rounded-xl p-6">
-              <div className="text-3xl mb-2">🦷</div>
-              <div className="text-2xl font-bold text-purple-400">{gameStats?.totalTips || 0}</div>
-              <div className="text-gray-300">Zombie Bites</div>
-            </div>
+        {/* Compact Stats */}
+        <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto mb-8">
+          <div className="bg-red-500/20 border border-red-500/30 rounded-2xl p-4">
+            <div className="text-2xl">🧟‍♂️</div>
+            <div className="text-xl font-bold text-red-400">{gameStats?.totalZombies || 0}</div>
+          </div>
+          
+          <div className="bg-green-500/20 border border-green-500/30 rounded-2xl p-4">
+            <div className="text-2xl">👤</div>
+            <div className="text-xl font-bold text-green-400">{gameStats?.totalHumans || 0}</div>
+          </div>
+          
+          <div className="bg-purple-500/20 border border-purple-500/30 rounded-2xl p-4">
+            <div className="text-2xl">🦷</div>
+            <div className="text-xl font-bold text-purple-400">{gameStats?.totalTips || 0}</div>
           </div>
         </div>
       </div>
@@ -230,15 +222,12 @@ export default function ZombieGamePage() {
       <div className="max-w-4xl mx-auto px-4 pb-16">
         {/* Farcaster Authentication */}
         {!isFarcasterAuthenticated ? (
-          <div className="bg-black/40 backdrop-blur-sm border border-red-500/30 rounded-xl p-8 mb-8 text-center">
-            <div className="text-4xl mb-4">🎃</div>
-            <h2 className="text-2xl font-bold mb-4 text-red-400">Join the Apocalypse</h2>
-            <p className="text-gray-300 mb-6">
-              Connect your Farcaster account to participate in the zombie infection game!
-            </p>
+          <div className="bg-black/50 border border-red-500/30 rounded-3xl p-6 mb-6 text-center">
+            <div className="text-6xl mb-4">🎃</div>
+            <h2 className="text-xl font-bold mb-3 text-red-400">Join the Apocalypse</h2>
             <button
               onClick={farcasterLogin}
-              className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl text-lg"
             >
               🧟‍♂️ Connect Farcaster
             </button>
@@ -246,89 +235,78 @@ export default function ZombieGamePage() {
         ) : (
           <>
             {/* User Status Card */}
-            <div className={`bg-black/40 backdrop-blur-sm border rounded-xl p-8 mb-8 ${
+            <div className={`border rounded-3xl p-6 mb-6 text-center ${
               userStatus?.isZombie 
-                ? 'border-red-500/50 bg-red-900/20' 
-                : 'border-green-500/50 bg-green-900/20'
+                ? 'border-red-500/50 bg-red-500/20' 
+                : 'border-green-500/50 bg-green-500/20'
             }`}>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold">
-                    {userStatus?.isZombie ? '🧟‍♂️ ZOMBIE STATUS' : '👤 HUMAN STATUS'}
-                  </h2>
-                  <p className="text-gray-300">@{farcasterUser?.username}</p>
-                </div>
-                <div className="text-right">
-                  <div className={`text-lg font-bold ${
-                    userStatus?.isZombie ? 'text-red-400' : 'text-green-400'
-                  }`}>
-                    {userStatus?.isZombie ? 'INFECTED' : 'UNINFECTED'}
-                  </div>
-                  {userStatus?.becameZombieAt && (
-                    <div className="text-sm text-gray-400">
-                      Infected: {new Date(userStatus.becameZombieAt).toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
+              <div className="text-6xl mb-3">
+                {userStatus?.isZombie ? '🧟‍♂️' : '👤'}
               </div>
+              <div className={`text-2xl font-bold mb-1 ${
+                userStatus?.isZombie ? 'text-red-400' : 'text-green-400'
+              }`}>
+                {userStatus?.isZombie ? 'INFECTED' : 'SURVIVOR'}
+              </div>
+              <div className="text-gray-300 mb-4">@{farcasterUser?.username}</div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-black/20 rounded-2xl p-3">
                   <div className="text-lg font-bold text-red-400">{userStatus?.tipsReceived || 0}</div>
-                  <div className="text-sm text-gray-400">Tips Received</div>
+                  <div className="text-xs text-gray-400">Received</div>
                 </div>
-                <div>
+                <div className="bg-black/20 rounded-2xl p-3">
                   <div className="text-lg font-bold text-orange-400">{userStatus?.tipsSent || 0}</div>
-                  <div className="text-sm text-gray-400">
-                    {userStatus?.isZombie ? 'Humans Infected' : 'Tips Sent'}
+                  <div className="text-xs text-gray-400">
+                    {userStatus?.isZombie ? 'Infected' : 'Sent'}
                   </div>
                 </div>
-                <div>
+                <div className="bg-black/20 rounded-2xl p-3">
                   <div className="text-lg font-bold text-purple-400">{pendingTips.length}</div>
-                  <div className="text-sm text-gray-400">Pending Bites</div>
+                  <div className="text-xs text-gray-400">Pending</div>
                 </div>
               </div>
             </div>
 
-            {/* Pending Tips / Bite Decision */}
+            {/* Pending Bites */}
             {pendingTips.length > 0 && !userStatus?.isZombie && (
-              <div className="bg-red-900/30 backdrop-blur-sm border border-red-500/30 rounded-xl p-8 mb-8">
-                <h3 className="text-2xl font-bold mb-4 text-red-400">
-                  🦷 You've Been Bitten!
-                </h3>
-                <p className="text-gray-300 mb-6">
-                  You have {pendingTips.length} zombie bite{pendingTips.length > 1 ? 's' : ''}! 
-                  Succumb to the bite and become a zombie, or resist and stay human.
-                </p>
+              <div className="bg-red-500/20 border border-red-500/30 rounded-3xl p-6 mb-6">
+                <div className="text-center mb-6">
+                  <div className="text-6xl mb-2">🦷</div>
+                  <h3 className="text-xl font-bold text-red-400 mb-2">
+                    You've Been Bitten!
+                  </h3>
+                  <div className="text-sm text-gray-300">
+                    {pendingTips.length} bite{pendingTips.length > 1 ? 's' : ''} pending
+                  </div>
+                </div>
 
                 <div className="space-y-3 mb-6">
-                  {pendingTips.map((tip) => (
-                    <div key={tip.id} className="bg-black/30 rounded-lg p-4 flex justify-between items-center">
-                      <div>
-                        <div className="font-semibold">🧟‍♂️ @{tip.tipperUsername}</div>
-                        <div className="text-sm text-gray-400">
-                          Expires: {new Date(tip.expiresAt).toLocaleString()}
+                  {pendingTips.slice(0, 3).map((tip) => (
+                    <div key={tip.id} className="bg-black/20 rounded-2xl p-4 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">🧟‍♂️</div>
+                        <div>
+                          <div className="font-semibold">@{tip.tipperUsername}</div>
+                          <div className="text-xs text-gray-400">1 $ZOMBIE</div>
                         </div>
-                      </div>
-                      <div className="text-lg font-bold text-red-400">
-                        {tip.amount} $ZOMBIE
                       </div>
                     </div>
                   ))}
+                  {pendingTips.length > 3 && (
+                    <div className="text-center text-sm text-gray-400">
+                      +{pendingTips.length - 3} more bites...
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="grid grid-cols-1 gap-3">
                   <button
                     onClick={handleClaimTips}
                     disabled={claiming}
-                    className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
+                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-200 text-lg"
                   >
-                    {claiming ? 'Succumbing...' : '🧟‍♂️ Succumb to Bite'}
-                  </button>
-                  <button
-                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
-                  >
-                    👤 Resist (Ignore Tips)
+                    {claiming ? 'Becoming Zombie...' : '🧟‍♂️ Become Zombie'}
                   </button>
                 </div>
               </div>
@@ -336,30 +314,28 @@ export default function ZombieGamePage() {
 
             {/* Zombie Powers */}
             {userStatus?.isZombie && (
-              <div className="bg-red-900/30 backdrop-blur-sm border border-red-500/30 rounded-xl p-8 mb-8">
-                <h3 className="text-2xl font-bold mb-4 text-red-400">
-                  🧟‍♂️ Zombie Powers Activated
+              <div className="bg-red-500/20 border border-red-500/30 rounded-3xl p-6 mb-6 text-center">
+                <div className="text-6xl mb-4">🧟‍♂️</div>
+                <h3 className="text-xl font-bold mb-4 text-red-400">
+                  Zombie Powers Active
                 </h3>
-                <p className="text-gray-300 mb-6">
-                  You are now a zombie! Use your undead powers to bite humans and spread the curse.
-                </p>
-                <button className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200">
-                  🦷 Bite Humans (Tip $ZOMBIE)
+                <button className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-200 text-lg">
+                  🦷 Bite Humans
                 </button>
+                <div className="text-xs text-gray-400 mt-2">
+                  Tag @zombie-bite @username in Farcaster
+                </div>
               </div>
             )}
 
             {/* Wallet Connection */}
             {!isConnected && (
-              <div className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-xl p-8 mb-8 text-center">
-                <div className="text-3xl mb-4">💀</div>
-                <h3 className="text-xl font-bold mb-4 text-purple-400">Connect Wallet</h3>
-                <p className="text-gray-300 mb-6">
-                  Connect your wallet to claim zombie tips and participate in the final payout.
-                </p>
+              <div className="bg-purple-500/20 border border-purple-500/30 rounded-3xl p-6 mb-6 text-center">
+                <div className="text-6xl mb-4">💀</div>
+                <h3 className="text-lg font-bold mb-3 text-purple-400">Connect Wallet</h3>
                 <button
                   onClick={connectWallet}
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-200 text-lg"
                 >
                   💀 Connect Wallet
                 </button>
@@ -368,24 +344,19 @@ export default function ZombieGamePage() {
           </>
         )}
 
-        {/* Game Rules */}
-        <div className="bg-black/40 backdrop-blur-sm border border-orange-500/30 rounded-xl p-8">
-          <h3 className="text-2xl font-bold mb-4 text-orange-400">🎃 How to Play</h3>
-          <div className="space-y-3 text-gray-300">
-            <p><strong>1. Bite Humans:</strong> Zombies tip 1 $ZOMBIE to bite humans</p>
-            <p><strong>2. Make Your Choice:</strong> Humans can claim tips (become zombie) or ignore them</p>
-            <p><strong>3. Tips Expire:</strong> You have 4 hours to decide before tips expire</p>
-            <p><strong>4. Final Payout:</strong> All zombies share the prize pool at game end</p>
-            <p><strong>5. Strategy:</strong> Become zombie early for more biting time, or wait for bigger final pool</p>
-          </div>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => router.push('/leaderboard')}
+            className="bg-orange-500/20 border border-orange-500/30 rounded-2xl p-4 text-center hover:bg-orange-500/30 transition-all duration-200"
+          >
+            <div className="text-3xl mb-2">📊</div>
+            <div className="text-sm font-medium text-orange-400">Leaderboard</div>
+          </button>
           
-          <div className="mt-6 flex gap-4">
-            <button
-              onClick={() => router.push('/leaderboard')}
-              className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200"
-            >
-              📊 Bite Tracker
-            </button>
+          <div className="bg-gray-500/20 border border-gray-500/30 rounded-2xl p-4 text-center">
+            <div className="text-3xl mb-2">🎃</div>
+            <div className="text-sm font-medium text-gray-400">How to Play</div>
           </div>
         </div>
       </div>
