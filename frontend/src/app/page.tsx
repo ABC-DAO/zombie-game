@@ -354,10 +354,13 @@ export default function ZombieGamePage() {
             <div className="text-sm font-medium text-orange-400">Leaderboard</div>
           </button>
           
-          <div className="bg-gray-500/20 border border-gray-500/30 rounded-2xl p-4 text-center">
+          <button
+            onClick={() => router.push('/how-to-play')}
+            className="bg-gray-500/20 border border-gray-500/30 rounded-2xl p-4 text-center hover:bg-gray-500/30 transition-all duration-200"
+          >
             <div className="text-3xl mb-2">🎃</div>
             <div className="text-sm font-medium text-gray-400">How to Play</div>
-          </div>
+          </button>
         </div>
       </div>
     </div>
