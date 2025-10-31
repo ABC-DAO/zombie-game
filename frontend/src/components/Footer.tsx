@@ -27,14 +27,27 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Halloween Resources */}
+          {/* $ZOMBIE Token & Contract */}
           <div>
-            <h3 className="font-semibold mb-4 text-orange-400">🎃 Resources</h3>
+            <h3 className="font-semibold mb-4 text-orange-400">🪙 $ZOMBIE Token</h3>
             <ul className="space-y-2 text-sm text-gray-400">
+              <li>
+                <a 
+                  href="https://www.clanker.world/clanker/0x9b6260F4d9B183391ba979D6B1B2e017Def70B07" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-orange-400 transition-colors flex items-center gap-2"
+                >
+                  🦠 Clanker Contract
+                </a>
+              </li>
+              <li>
+                <span className="text-xs font-mono bg-gray-800 px-2 py-1 rounded break-all">
+                  0x9b6260F4d9B183391ba979D6B1B2e017Def70B07
+                </span>
+              </li>
               <li><a href="https://github.com/ABC-DAO/zombie-game" className="hover:text-orange-400 transition-colors">💀 GitHub</a></li>
-              <li><a href="#" className="hover:text-orange-400 transition-colors">🕷️ Game Rules</a></li>
-              <li><a href="#" className="hover:text-orange-400 transition-colors">🦇 API Docs</a></li>
-              <li><a href="#" className="hover:text-orange-400 transition-colors">👻 Smart Contract</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition-colors">📜 Game Rules</a></li>
             </ul>
           </div>
 
