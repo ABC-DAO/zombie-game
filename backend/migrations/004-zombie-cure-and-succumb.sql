@@ -166,6 +166,29 @@ SELECT
   (SELECT COUNT(*) FROM zombie_cures WHERE is_active = true) AS active_cures,
   (SELECT COUNT(*) FROM zombie_allowance_claims) AS total_succumbs;
 
+-- Enhanced game stats view with timer (what the code expects)
+CREATE OR REPLACE VIEW zombie_game_stats_with_timer AS
+SELECT
+  (SELECT COUNT(*) FROM zombie_status WHERE is_zombie = true) AS total_zombies,
+  (SELECT COUNT(*) FROM zombie_status WHERE is_zombie = false) AS total_humans,
+  (SELECT COUNT(*) FROM zombie_status WHERE is_zombie = true AND is_cured = true) AS cured_zombies,
+  (SELECT COUNT(*) FROM zombie_bites) AS total_bites,
+  (SELECT COUNT(*) FROM zombie_bites WHERE status = 'PENDING') AS pending_bites,
+  (SELECT COUNT(*) FROM zombie_bites WHERE status = 'CLAIMED') AS claimed_bites,
+  (SELECT COUNT(*) FROM zombie_cures WHERE is_active = true) AS active_cures,
+  (SELECT COUNT(*) FROM zombie_allowance_claims) AS total_succumbs,
+  zgs.is_active,
+  zgs.game_started_at,
+  zgs.game_ends_at,
+  CASE 
+    WHEN zgs.game_ends_at IS NULL THEN NULL
+    WHEN zgs.game_ends_at <= NOW() THEN 0
+    ELSE EXTRACT(EPOCH FROM (zgs.game_ends_at - NOW()))::INTEGER
+  END AS seconds_remaining,
+  zgs.patient_zero_fid AS first_bite_by_fid
+FROM zombie_game_state zgs
+WHERE zgs.id = 1;
+
 -- ===================================================================
 -- AUTO-UPDATE TRIGGER FOR GAME STATE
 -- ===================================================================
