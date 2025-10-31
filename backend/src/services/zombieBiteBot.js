@@ -115,32 +115,39 @@ class ZombieBiteBot {
         text: cast.text
       });
 
-      // Parse the cast for bite targets (mentions + reply target)
-      const targets = this.extractBiteTargets(cast.text, cast);
+      // Parse the cast for commands or bite targets
+      const parsed = this.extractBiteTargets(cast.text, cast);
       
-      if (targets.length === 0) {
-        logger.info('No valid bite targets found in cast');
+      if (!parsed || (parsed.type === 'bite' && parsed.targets.length === 0)) {
+        logger.info('No valid commands or bite targets found in cast');
         return;
       }
 
-      // Get the zombie (cast author) user info
-      const zombieUser = await this.getOrCreateUser(cast.author.fid, cast.author.username);
-      if (!zombieUser) {
-        logger.error('Failed to get zombie user info');
+      // Get the user (cast author) info
+      const user = await this.getOrCreateUser(cast.author.fid, cast.author.username);
+      if (!user) {
+        logger.error('Failed to get user info');
         return;
       }
 
-      // Check if the zombie is actually a zombie
-      const isZombie = await this.checkZombieStatus(zombieUser.id);
-      if (!isZombie) {
-        // Auto-reply: Only zombies can bite
-        await this.replyToCast(cast.hash, '🚫 Only zombies can bite humans! Get bitten first to join the undead horde.');
-        return;
-      }
+      // Route to appropriate handler based on command type
+      if (parsed.type === 'cure') {
+        await this.processCure(user.farcaster_fid, parsed.username, parsed.txHash, cast);
+      } else if (parsed.type === 'succumb') {
+        await this.processSuccumb(user.farcaster_fid, cast);
+      } else if (parsed.type === 'bite') {
+        // Check if the user is actually a zombie for bite commands
+        const isZombie = await this.checkZombieStatus(user.id);
+        if (!isZombie) {
+          // Auto-reply: Only zombies can bite
+          await this.replyToCast(cast.hash, '🚫 Only zombies can bite humans! Get bitten first to join the undead horde.');
+          return;
+        }
 
-      // Process each bite target
-      for (const target of targets) {
-        await this.processBite(zombieUser, target, cast);
+        // Process each bite target
+        for (const target of parsed.targets) {
+          await this.processBite(user, target, cast);
+        }
       }
 
     } catch (error) {
@@ -149,7 +156,19 @@ class ZombieBiteBot {
   }
 
   extractBiteTargets(text, cast) {
-    // Look for @username mentions (excluding @zombie-bite itself)
+    // Check for cure command first: @zombie-bite cure @username <tx_hash>
+    const cureMatch = text.match(/@zombie-bite\s+cure\s+@([\w-]+)\s+([0-9a-fA-Fx]+)/);
+    if (cureMatch) {
+      return { type: 'cure', username: cureMatch[1], txHash: cureMatch[2] };
+    }
+
+    // Check for succumb command: @zombie-bite succumb OR @zombie-bite claim
+    const succumbMatch = text.match(/@zombie-bite\s+(succumb|claim)/);
+    if (succumbMatch) {
+      return { type: 'succumb' };
+    }
+
+    // Look for @username mentions (excluding @zombie-bite itself) for bites
     // Regex supports: letters, numbers, hyphens, underscores (valid Farcaster username chars)
     const mentionRegex = /@([\w-]+)/g;
     const targets = [];
@@ -175,7 +194,7 @@ class ZombieBiteBot {
     }
 
     logger.info(`🔍 Extracted bite targets from "${text}": [${targets.join(', ')}]`);
-    return targets;
+    return { type: 'bite', targets };
   }
 
   async getOrCreateUser(fid, username) {
@@ -234,11 +253,170 @@ class ZombieBiteBot {
     }
   }
 
+  // Command format: @zombie-bite cure @username <tx_hash>
+  async processCure(curerFid, targetUsername, txHash, cast) {
+    const client = await db.getClient();
+    
+    try {
+      await client.query('BEGIN');
+
+      // 1. Extract target FID from username
+      let userResponse;
+      try {
+        userResponse = await axios.get(`https://api.neynar.com/v2/farcaster/user/by_username?username=${targetUsername}`, {
+          headers: {
+            'accept': 'application/json',
+            'api_key': this.neynarApiKey
+          }
+        });
+      } catch (userLookupError) {
+        await client.query('ROLLBACK');
+        return await this.replyToCast(cast.hash, '❌ User not found');
+      }
+
+      const targetUser = userResponse.data?.user;
+      if (!targetUser) {
+        await client.query('ROLLBACK');
+        return await this.replyToCast(cast.hash, '❌ User not found');
+      }
+
+      const targetFid = targetUser.fid;
+
+      // 2. Verify payment transaction on Base network (placeholder - implement with actual Base RPC)
+      const paymentValid = await this.verifyZombiePayment(txHash, 10000);
+      if (!paymentValid) {
+        await client.query('ROLLBACK');
+        return await this.replyToCast(cast.hash, '❌ Invalid payment transaction');
+      }
+
+      // 3. Check target is currently a zombie (not human or already cured)
+      const targetStatus = await this.getZombieStatusByFid(targetFid);
+      if (!targetStatus || !targetStatus.is_zombie) {
+        await client.query('ROLLBACK');
+        return await this.replyToCast(cast.hash, '❌ Target is not a zombie');
+      }
+      if (targetStatus.is_cured) {
+        await client.query('ROLLBACK');
+        return await this.replyToCast(cast.hash, '❌ Target is already cured');
+      }
+
+      // 4. Record cure in database
+      await client.query(`
+        INSERT INTO zombie_cures (cured_user_fid, cured_by_fid, payment_tx_hash, cast_hash)
+        VALUES ($1, $2, $3, $4)
+      `, [targetFid, curerFid, txHash, cast.hash]);
+
+      // 5. Update zombie_status table
+      await client.query(`
+        UPDATE zombie_status 
+        SET is_cured = true, updated_at = NOW()
+        WHERE user_id = (SELECT id FROM users WHERE farcaster_fid = $1)
+      `, [targetFid]);
+
+      await client.query('COMMIT');
+
+      // 6. Post confirmation cast
+      await this.replyToCast(cast.hash, 
+        `💊 @${targetUsername} has been cured! They cannot bite until infected again.`
+      );
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Cure processing error:', error);
+      await this.replyToCast(cast.hash, '❌ Cure failed - please try again');
+    } finally {
+      client.release();
+    }
+  }
+
+  // Command format: @zombie-bite succumb
+  async processSuccumb(userFid, cast) {
+    const client = await db.getClient();
+    
+    try {
+      await client.query('BEGIN');
+
+      // 1. Check user is currently human
+      const userStatus = await this.getZombieStatusByFid(userFid);
+      if (userStatus && userStatus.is_zombie) {
+        await client.query('ROLLBACK');
+        return await this.replyToCast(cast.hash, '❌ You are already a zombie!');
+      }
+      if (userStatus && userStatus.is_cured) {
+        await client.query('ROLLBACK');
+        return await this.replyToCast(cast.hash, '❌ You are cured and cannot succumb!');
+      }
+
+      // 2. Check if user has already claimed allowance for this game
+      const hasClaimed = await this.checkZombieAllowanceClaimed(userFid);
+      if (hasClaimed) {
+        await client.query('ROLLBACK');
+        return await this.replyToCast(cast.hash, '❌ You have already claimed your $ZOMBIE allowance!');
+      }
+
+      // 3. Initiate smart contract claim (placeholder - implement with actual contract call)
+      const claimResult = await this.claimZombieAllowance(userFid);
+      if (!claimResult.success) {
+        await client.query('ROLLBACK');
+        return await this.replyToCast(cast.hash, '❌ Failed to claim $ZOMBIE allowance. Try again.');
+      }
+
+      // 4. Get or create user record
+      const user = await this.getOrCreateUser(userFid, cast.author.username);
+      if (!user) {
+        await client.query('ROLLBACK');
+        return await this.replyToCast(cast.hash, '❌ Failed to process user data');
+      }
+
+      // 5. Update zombie status
+      await client.query(`
+        INSERT INTO zombie_status (user_id, is_zombie, is_cured, became_zombie_at, total_bites_sent)
+        VALUES ($1, true, false, NOW(), 0)
+        ON CONFLICT (user_id) 
+        DO UPDATE SET 
+          is_zombie = true, 
+          is_cured = false,
+          became_zombie_at = NOW(),
+          updated_at = NOW()
+      `, [user.id]);
+
+      // 6. Record allowance claim
+      await client.query(`
+        INSERT INTO zombie_allowance_claims (user_fid, tx_hash, amount_claimed)
+        VALUES ($1, $2, $3)
+      `, [userFid, claimResult.txHash, claimResult.amount]);
+
+      await client.query('COMMIT');
+
+      // 7. Post confirmation
+      await this.replyToCast(cast.hash, 
+        `🧟‍♂️ You have succumbed to the virus and claimed ${claimResult.amount} $ZOMBIE! Welcome to the horde! 🧟‍♀️`
+      );
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Succumb processing error:', error);
+      await this.replyToCast(cast.hash, '❌ Succumb failed - please try again');
+    } finally {
+      client.release();
+    }
+  }
+
   async processBite(zombieUser, targetUsername, cast) {
     const client = await db.getClient();
     
     try {
       await client.query('BEGIN');
+
+      // Check if zombie is currently cured
+      const zombieStatus = await this.getZombieStatusByFid(zombieUser.farcaster_fid);
+      if (zombieStatus && zombieStatus.is_cured) {
+        await client.query('COMMIT');
+        await this.replyToCast(cast.hash, 
+          '💊 You are currently cured and cannot bite! Get infected again to resume biting.'
+        );
+        return;
+      }
 
       // Check if game is active
       const gameActiveResult = await client.query('SELECT is_zombie_game_active() as is_active');
@@ -498,6 +676,73 @@ An ABC_DAO Halloween experiment 🎃`;
       }
     } catch (error) {
       logger.error('Error posting public cast:', error);
+    }
+  }
+
+  // Helper functions for cure and succumb functionality
+  async getZombieStatusByFid(fid) {
+    const client = await db.getClient();
+    
+    try {
+      const result = await client.query(`
+        SELECT zs.is_zombie, zs.is_cured, zs.became_zombie_at, zs.total_bites_sent
+        FROM zombie_status zs
+        JOIN users u ON zs.user_id = u.id
+        WHERE u.farcaster_fid = $1
+      `, [fid]);
+
+      return result.rows.length > 0 ? result.rows[0] : null;
+    } finally {
+      client.release();
+    }
+  }
+
+  async verifyZombiePayment(txHash, expectedAmount) {
+    // TODO: Implement actual Base network transaction verification
+    // For now, return true if txHash looks valid (starts with 0x and is 66 chars)
+    if (txHash.startsWith('0x') && txHash.length === 66) {
+      logger.info(`💊 Payment verification placeholder - txHash: ${txHash}, amount: ${expectedAmount}`);
+      return true;
+    }
+    return false;
+  }
+
+  async checkZombieAllowanceClaimed(userFid) {
+    const client = await db.getClient();
+    
+    try {
+      const result = await client.query(`
+        SELECT id FROM zombie_allowance_claims 
+        WHERE user_fid = $1
+      `, [userFid]);
+      return result.rows.length > 0;
+    } finally {
+      client.release();
+    }
+  }
+
+  async claimZombieAllowance(userFid) {
+    // TODO: Implement actual smart contract interaction
+    // For now, return mock success response
+    logger.info(`🧟‍♂️ Claiming zombie allowance for FID: ${userFid}`);
+    return {
+      success: true,
+      txHash: `0x${Math.random().toString(16).substr(2, 64)}`, // Mock tx hash
+      amount: 1000
+    };
+  }
+
+  async deactivateCures(userFid) {
+    const client = await db.getClient();
+    
+    try {
+      return await client.query(`
+        UPDATE zombie_cures 
+        SET is_active = false 
+        WHERE cured_user_fid = $1 AND is_active = true
+      `, [userFid]);
+    } finally {
+      client.release();
     }
   }
 }

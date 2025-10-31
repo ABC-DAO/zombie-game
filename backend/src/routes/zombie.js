@@ -110,6 +110,7 @@ router.get('/status/:fid', async (req, res) => {
           u.farcaster_fid,
           u.farcaster_username,
           zs.is_zombie,
+          zs.is_cured,
           zs.became_zombie_at,
           zs.total_bites_sent,
           u.created_at,
@@ -127,6 +128,7 @@ router.get('/status/:fid', async (req, res) => {
           success: true,
           data: {
             isZombie: false,
+            isCured: false,
             isInGame: false,
             tipsSent: 0,
             tipsReceived: 0,
@@ -139,6 +141,7 @@ router.get('/status/:fid', async (req, res) => {
           success: true,
           data: {
             isZombie: !!player.is_zombie,
+            isCured: !!player.is_cured,
             isInGame: true,
             walletAddress: player.wallet_address,
             farcasterFid: player.farcaster_fid,
@@ -157,6 +160,7 @@ router.get('/status/:fid', async (req, res) => {
         success: true,
         data: {
           isZombie: false,
+          isCured: false,
           isInGame: false,
           tipsSent: 0,
           tipsReceived: 0,
@@ -720,6 +724,326 @@ router.post('/send-patient-rewards', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to send Patient Group 0 rewards'
+    });
+  }
+});
+
+// POST /api/zombie/cure - Process cure requests
+router.post('/cure', async (req, res) => {
+  try {
+    const { curerFid, targetFid, txHash, castHash } = req.body;
+    
+    if (!curerFid || !targetFid || !txHash) {
+      return res.status(400).json({
+        success: false,
+        error: 'curerFid, targetFid, and txHash are required'
+      });
+    }
+    
+    logger.info(`💊 Processing cure request: curer=${curerFid}, target=${targetFid}, tx=${txHash}`);
+    
+    const client = await db.getClient();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Check target is currently a zombie (not human or already cured)
+      const targetQuery = `
+        SELECT zs.is_zombie, zs.is_cured
+        FROM zombie_status zs
+        JOIN users u ON zs.user_id = u.id
+        WHERE u.farcaster_fid = $1
+      `;
+      const targetResult = await client.query(targetQuery, [targetFid]);
+      
+      if (targetResult.rows.length === 0 || !targetResult.rows[0].is_zombie) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'Target is not a zombie'
+        });
+      }
+      
+      if (targetResult.rows[0].is_cured) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'Target is already cured'
+        });
+      }
+      
+      // Record cure in database
+      await client.query(`
+        INSERT INTO zombie_cures (cured_user_fid, cured_by_fid, payment_tx_hash, cast_hash)
+        VALUES ($1, $2, $3, $4)
+      `, [targetFid, curerFid, txHash, castHash || null]);
+      
+      // Update zombie_status table
+      await client.query(`
+        UPDATE zombie_status 
+        SET is_cured = true, updated_at = NOW()
+        WHERE user_id = (SELECT id FROM users WHERE farcaster_fid = $1)
+      `, [targetFid]);
+      
+      await client.query('COMMIT');
+      
+      logger.info(`✅ Cure successful: target ${targetFid} cured by ${curerFid}`);
+      
+      res.json({
+        success: true,
+        message: 'Cure applied successfully',
+        data: {
+          curedUserFid: targetFid,
+          curedByFid: curerFid,
+          txHash,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+    } catch (dbError) {
+      await client.query('ROLLBACK');
+      throw dbError;
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    logger.error('Error processing cure:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process cure'
+    });
+  }
+});
+
+// POST /api/zombie/succumb - Process succumb to virus requests
+router.post('/succumb', async (req, res) => {
+  try {
+    const { userFid } = req.body;
+    
+    if (!userFid) {
+      return res.status(400).json({
+        success: false,
+        error: 'userFid is required'
+      });
+    }
+    
+    logger.info(`🧟‍♂️ Processing succumb request for FID: ${userFid}`);
+    
+    const client = await db.getClient();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Check user is currently human
+      const userQuery = `
+        SELECT zs.is_zombie, zs.is_cured
+        FROM zombie_status zs
+        JOIN users u ON zs.user_id = u.id
+        WHERE u.farcaster_fid = $1
+      `;
+      const userResult = await client.query(userQuery, [userFid]);
+      
+      if (userResult.rows.length > 0) {
+        const userStatus = userResult.rows[0];
+        if (userStatus.is_zombie) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            success: false,
+            error: 'You are already a zombie!'
+          });
+        }
+        if (userStatus.is_cured) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            success: false,
+            error: 'You are cured and cannot succumb!'
+          });
+        }
+      }
+      
+      // Check if user has already claimed allowance
+      const claimResult = await client.query(`
+        SELECT id FROM zombie_allowance_claims WHERE user_fid = $1
+      `, [userFid]);
+      
+      if (claimResult.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'You have already claimed your $ZOMBIE allowance!'
+        });
+      }
+      
+      // Get or create user record
+      let userRecord = await client.query(
+        'SELECT id FROM users WHERE farcaster_fid = $1',
+        [userFid]
+      );
+      
+      let userId;
+      if (userRecord.rows.length === 0) {
+        // Create new user with minimal info
+        const newUserResult = await client.query(
+          'INSERT INTO users (farcaster_fid) VALUES ($1) RETURNING id',
+          [userFid]
+        );
+        userId = newUserResult.rows[0].id;
+      } else {
+        userId = userRecord.rows[0].id;
+      }
+      
+      // Mock smart contract claim (replace with actual contract call)
+      const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
+      const claimAmount = 1000;
+      
+      // Update zombie status
+      await client.query(`
+        INSERT INTO zombie_status (user_id, is_zombie, is_cured, became_zombie_at, total_bites_sent)
+        VALUES ($1, true, false, NOW(), 0)
+        ON CONFLICT (user_id) 
+        DO UPDATE SET 
+          is_zombie = true, 
+          is_cured = false,
+          became_zombie_at = NOW(),
+          updated_at = NOW()
+      `, [userId]);
+      
+      // Record allowance claim
+      await client.query(`
+        INSERT INTO zombie_allowance_claims (user_fid, tx_hash, amount_claimed)
+        VALUES ($1, $2, $3)
+      `, [userFid, mockTxHash, claimAmount]);
+      
+      await client.query('COMMIT');
+      
+      logger.info(`✅ Succumb successful: FID ${userFid} is now a zombie with ${claimAmount} $ZOMBIE`);
+      
+      res.json({
+        success: true,
+        message: 'Successfully succumbed to the virus!',
+        data: {
+          userFid,
+          txHash: mockTxHash,
+          amountClaimed: claimAmount,
+          newStatus: 'zombie',
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+    } catch (dbError) {
+      await client.query('ROLLBACK');
+      throw dbError;
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    logger.error('Error processing succumb:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process succumb request'
+    });
+  }
+});
+
+// GET /api/zombie/cures/:fid - Get user's cure history
+router.get('/cures/:fid', async (req, res) => {
+  try {
+    const { fid } = req.params;
+    logger.info(`💊 Fetching cure history for FID: ${fid}`);
+    
+    const client = await db.getClient();
+    
+    const curesQuery = `
+      SELECT 
+        zc.id,
+        zc.cured_by_fid,
+        zc.cost_amount,
+        zc.cured_at,
+        zc.is_active,
+        u.farcaster_username as cured_by_username
+      FROM zombie_cures zc
+      LEFT JOIN users u ON u.farcaster_fid = zc.cured_by_fid
+      WHERE zc.cured_user_fid = $1
+      ORDER BY zc.cured_at DESC
+    `;
+    
+    const result = await client.query(curesQuery, [parseInt(fid)]);
+    
+    res.json({
+      success: true,
+      data: {
+        cures: result.rows.map(cure => ({
+          id: cure.id,
+          curedByFid: cure.cured_by_fid,
+          curedByUsername: cure.cured_by_username,
+          costAmount: parseFloat(cure.cost_amount),
+          curedAt: cure.cured_at,
+          isActive: cure.is_active
+        }))
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error fetching cure history:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch cure history'
+    });
+  }
+});
+
+// GET /api/zombie/cured-status/:fid - Check if user is currently cured
+router.get('/cured-status/:fid', async (req, res) => {
+  try {
+    const { fid } = req.params;
+    logger.info(`💊 Checking cure status for FID: ${fid}`);
+    
+    const client = await db.getClient();
+    
+    const statusQuery = `
+      SELECT 
+        zs.is_cured,
+        zc.cured_at,
+        zc.cured_by_fid,
+        u.farcaster_username as cured_by_username
+      FROM zombie_status zs
+      JOIN users u ON zs.user_id = u.id
+      LEFT JOIN zombie_cures zc ON zc.cured_user_fid = u.farcaster_fid AND zc.is_active = true
+      LEFT JOIN users curer ON curer.farcaster_fid = zc.cured_by_fid
+      WHERE u.farcaster_fid = $1
+    `;
+    
+    const result = await client.query(statusQuery, [parseInt(fid)]);
+    
+    if (result.rows.length === 0) {
+      res.json({
+        success: true,
+        data: {
+          isCured: false,
+          curedAt: null,
+          curedBy: null
+        }
+      });
+    } else {
+      const status = result.rows[0];
+      res.json({
+        success: true,
+        data: {
+          isCured: !!status.is_cured,
+          curedAt: status.cured_at,
+          curedBy: status.cured_by_fid,
+          curedByUsername: status.cured_by_username
+        }
+      });
+    }
+    
+  } catch (error) {
+    logger.error('Error checking cure status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check cure status'
     });
   }
 });

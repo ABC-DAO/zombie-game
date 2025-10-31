@@ -70,6 +70,22 @@ export const zombieApi = {
     biteIds: string[];
     farcasterUsername?: string;
   }) => api.post('/api/zombie/claim', data),
+
+  // Cure functionality
+  applyCure: (data: {
+    curerFid: number;
+    targetFid: number;
+    txHash: string;
+    castHash?: string;
+  }) => api.post('/api/zombie/cure', data),
+
+  getCureHistory: (fid: number) => api.get(`/api/zombie/cures/${fid}`),
+  getCureStatus: (fid: number) => api.get(`/api/zombie/cured-status/${fid}`),
+
+  // Succumb functionality
+  succumbToVirus: (data: {
+    userFid: number;
+  }) => api.post('/api/zombie/succumb', data),
 };
 
 // Tipping API (Updated for zombie game)

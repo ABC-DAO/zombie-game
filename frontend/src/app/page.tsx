@@ -18,6 +18,7 @@ interface ZombieGameStats {
 interface UserInfectionStatus {
   walletAddress: string;
   isZombie: boolean;
+  isCured: boolean;
   pendingTips: number;
   tipsReceived: number;
   tipsSent: number;
@@ -57,6 +58,7 @@ export default function ZombieGamePage() {
   const [pendingTips, setPendingTips] = useState<PendingTip[]>([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
+  const [succumbing, setSuccumbing] = useState(false);
 
   // Fetch game data
   useEffect(() => {
@@ -107,6 +109,7 @@ export default function ZombieGamePage() {
       setUserStatus({
         walletAddress: address || playerData?.walletAddress || '',
         isZombie: playerData?.isZombie || false,
+        isCured: playerData?.isCured || false,
         pendingTips: 0, // Will be set by fetchPendingTips
         tipsReceived: playerData?.tipsReceived || 0,
         tipsSent: playerData?.tipsSent || 0,
@@ -120,6 +123,7 @@ export default function ZombieGamePage() {
       setUserStatus({
         walletAddress: address || '',
         isZombie: false,
+        isCured: false,
         pendingTips: 0,
         tipsReceived: 0,
         tipsSent: 0,
@@ -174,6 +178,27 @@ export default function ZombieGamePage() {
       console.error('Error claiming bites (becoming zombie):', error);
     } finally {
       setClaiming(false);
+    }
+  };
+
+  const handleSuccumbToVirus = async () => {
+    if (!farcasterUser?.fid) return;
+    
+    setSuccumbing(true);
+    try {
+      const response = await zombieApi.succumbToVirus({
+        userFid: farcasterUser.fid
+      });
+      
+      if (response.data && response.data.success) {
+        // Refresh data after successful transformation
+        await fetchUserStatus();
+        await fetchGameStats();
+      }
+    } catch (error) {
+      console.error('Error succumbing to virus:', error);
+    } finally {
+      setSuccumbing(false);
     }
   };
 
@@ -237,16 +262,24 @@ export default function ZombieGamePage() {
             {/* User Status Card */}
             <div className={`border rounded-3xl p-6 mb-6 text-center ${
               userStatus?.isZombie 
-                ? 'border-red-500/50 bg-red-500/20' 
+                ? userStatus?.isCured 
+                  ? 'border-blue-500/50 bg-blue-500/20' 
+                  : 'border-red-500/50 bg-red-500/20'
                 : 'border-green-500/50 bg-green-500/20'
             }`}>
               <div className="text-6xl mb-3">
-                {userStatus?.isZombie ? '🧟‍♂️' : '👤'}
+                {userStatus?.isZombie 
+                  ? userStatus?.isCured ? '💊' : '🧟‍♂️' 
+                  : '👤'}
               </div>
               <div className={`text-2xl font-bold mb-1 ${
-                userStatus?.isZombie ? 'text-red-400' : 'text-green-400'
+                userStatus?.isZombie 
+                  ? userStatus?.isCured ? 'text-blue-400' : 'text-red-400'
+                  : 'text-green-400'
               }`}>
-                {userStatus?.isZombie ? 'INFECTED' : 'SURVIVOR'}
+                {userStatus?.isZombie 
+                  ? userStatus?.isCured ? 'CURED ZOMBIE' : 'INFECTED'
+                  : 'SURVIVOR'}
               </div>
               <div className="text-gray-300 mb-4">@{farcasterUser?.username}</div>
 
@@ -312,8 +345,31 @@ export default function ZombieGamePage() {
               </div>
             )}
 
+            {/* Succumb to Virus - Only show for humans */}
+            {!userStatus?.isZombie && (
+              <div className="bg-orange-500/20 border border-orange-500/30 rounded-3xl p-6 mb-6 text-center">
+                <div className="text-6xl mb-4">🧟‍♂️</div>
+                <h3 className="text-xl font-bold mb-3 text-orange-400">
+                  Succumb to the Virus
+                </h3>
+                <div className="text-sm text-gray-300 mb-4">
+                  Claim 1,000 $ZOMBIE tokens and become a zombie immediately
+                </div>
+                <button
+                  onClick={handleSuccumbToVirus}
+                  disabled={succumbing}
+                  className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-200 text-lg"
+                >
+                  {succumbing ? 'Transforming...' : '🧟‍♂️ Succumb Now'}
+                </button>
+                <div className="text-xs text-gray-400 mt-2">
+                  ⚠️ This cannot be undone!
+                </div>
+              </div>
+            )}
+
             {/* Zombie Powers */}
-            {userStatus?.isZombie && (
+            {userStatus?.isZombie && !userStatus?.isCured && (
               <div className="bg-red-500/20 border border-red-500/30 rounded-3xl p-6 mb-6 text-center">
                 <div className="text-6xl mb-4">🧟‍♂️</div>
                 <h3 className="text-xl font-bold mb-4 text-red-400">
@@ -324,6 +380,22 @@ export default function ZombieGamePage() {
                 </button>
                 <div className="text-xs text-gray-400 mt-2">
                   Tag @zombie-bite @username in Farcaster
+                </div>
+              </div>
+            )}
+
+            {/* Cured Zombie Status */}
+            {userStatus?.isZombie && userStatus?.isCured && (
+              <div className="bg-blue-500/20 border border-blue-500/30 rounded-3xl p-6 mb-6 text-center">
+                <div className="text-6xl mb-4">💊</div>
+                <h3 className="text-xl font-bold mb-4 text-blue-400">
+                  You Are Cured!
+                </h3>
+                <div className="text-sm text-gray-300 mb-4">
+                  You cannot bite others until you are infected again
+                </div>
+                <div className="text-xs text-gray-400">
+                  Someone paid 10,000 $ZOMBIE to cure you
                 </div>
               </div>
             )}
