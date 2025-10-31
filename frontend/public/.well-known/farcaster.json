@@ -8,17 +8,17 @@
 
   "miniapp": {
     "version": "1",
-    "name": "Steak 'n' Stake",
-    "iconUrl": "https://steak.epicdylan.com/SteakNStake.png",
-    "homeUrl": "https://steak.epicdylan.com",
-    "imageUrl": "https://steak.epicdylan.com/SteakNStake.png",
-    "buttonTitle": "🥩 Start Staking",
-    "splashImageUrl": "https://steak.epicdylan.com/SteakNStake.png",
+    "name": "ZOMBIFICATION",
+    "iconUrl": "https://zombie.epicdylan.com/ZOMBIES.png",
+    "homeUrl": "https://zombie.epicdylan.com",
+    "imageUrl": "https://zombie.epicdylan.com/SteakNStake.png",
+    "buttonTitle": "Join The Zombie Apocalypse",
+    "splashImageUrl": "https://zombie.epicdylan.com/SteakNStake.png",
     "splashBackgroundColor": "#000000",
     "webhookUrl": "https://happy-determination-production.up.railway.app/api/farcaster/webhook",
-    "subtitle": "Stake STEAK; tip STEAK; grow.",
-    "description": "Stake STEAK tokens, earn rewards, and tip your favorite Farcaster creators with daily tip allowances.",
-    "primaryCategory": "social",
+    "subtitle": "Join the horde.",
+    "description": "Mmmmmm.... brainzzzz.",
+    "primaryCategory": "games",
     "tags": ["social", "community", "steak", "staking", "tipping"]
   }
 }
