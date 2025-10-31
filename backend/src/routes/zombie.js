@@ -380,4 +380,78 @@ router.post('/claim', async (req, res) => {
   }
 });
 
+// POST /api/zombie/create-test-bites - Create test bites for Patient Group 0
+router.post('/create-test-bites', async (req, res) => {
+  try {
+    const { testUsers, tipperFid, tipperUsername } = req.body;
+    
+    if (!testUsers || !Array.isArray(testUsers) || testUsers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'testUsers array required'
+      });
+    }
+    
+    logger.info(`🧪 Creating test bites for ${testUsers.length} Patient Group 0 users`);
+    
+    const client = await db.getClient();
+    
+    try {
+      await client.query('BEGIN');
+      
+      const biteInserts = [];
+      for (let i = 0; i < testUsers.length; i++) {
+        const user = testUsers[i];
+        const result = await client.query(`
+          INSERT INTO zombie_bites (
+            zombie_fid, zombie_username, human_fid, human_username, 
+            human_wallet_address, bite_amount, cast_hash, status, sent_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+          RETURNING id
+        `, [
+          tipperFid || 8573,
+          tipperUsername || 'zombie-bite',
+          user.fid,
+          user.username,
+          user.walletAddress.toLowerCase(),
+          1,
+          `test_patient_0_${user.fid}`,
+          'PENDING'
+        ]);
+        
+        biteInserts.push({
+          biteId: result.rows[0].id,
+          fid: user.fid,
+          username: user.username
+        });
+      }
+      
+      await client.query('COMMIT');
+      
+      logger.info(`✅ Created ${biteInserts.length} test bites for Patient Group 0`);
+      
+      res.json({
+        success: true,
+        message: `Created ${biteInserts.length} test bites for Patient Group 0`,
+        data: {
+          bites: biteInserts
+        }
+      });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    logger.error('Error creating test bites:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create test bites'
+    });
+  }
+});
+
 module.exports = router;
