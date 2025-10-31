@@ -267,26 +267,46 @@ Game ends at ${new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString()} 
         return;
       }
 
-      // Get target user by username
-      const userResponse = await axios.get(`https://api.neynar.com/v2/farcaster/user/by_username?username=${targetUsername}`, {
-        headers: {
-          'accept': 'application/json',
-          'api_key': this.neynarApiKey
+      // Get target user by username with error handling
+      let userResponse;
+      try {
+        userResponse = await axios.get(`https://api.neynar.com/v2/farcaster/user/by_username?username=${targetUsername}`, {
+          headers: {
+            'accept': 'application/json',
+            'api_key': this.neynarApiKey
+          }
+        });
+      } catch (userLookupError) {
+        logger.warn(`❌ Failed to lookup user @${targetUsername}:`, userLookupError.response?.status || userLookupError.message);
+        await client.query('COMMIT'); // Don't rollback game state
+        try {
+          await this.replyToCast(cast.hash, `❌ @${targetUsername} not found on Farcaster. Make sure the username is correct!`);
+        } catch (replyError) {
+          logger.error('Failed to reply to cast after user lookup error:', replyError);
         }
-      });
+        return;
+      }
 
       const targetUser = userResponse.data?.user;
       if (!targetUser) {
-        logger.warn(`Target user @${targetUsername} not found`);
+        logger.warn(`Target user @${targetUsername} not found in response`);
         await client.query('COMMIT'); // Don't rollback game state
-        await this.replyToCast(cast.hash, `❌ @${targetUsername} not found on Farcaster. Make sure the username is correct!`);
+        try {
+          await this.replyToCast(cast.hash, `❌ @${targetUsername} not found on Farcaster. Make sure the username is correct!`);
+        } catch (replyError) {
+          logger.error('Failed to reply to cast after user not found:', replyError);
+        }
         return;
       }
 
       // Prevent self-biting
       if (targetUser.fid === zombieUser.farcaster_fid) {
         await client.query('COMMIT'); // Don't rollback game state
-        await this.replyToCast(cast.hash, `🚫 You can't bite yourself! Find a human to infect instead! 🧟‍♂️`);
+        try {
+          await this.replyToCast(cast.hash, `🚫 You can't bite yourself! Find a human to infect instead! 🧟‍♂️`);
+        } catch (replyError) {
+          logger.error('Failed to reply to cast for self-bite prevention:', replyError);
+        }
         return;
       }
 
@@ -322,9 +342,14 @@ Game ends at ${new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString()} 
       logger.info(`🧟‍♂️ BITE RECORDED: ${zombieUser.farcaster_username} bit @${targetUsername}`);
 
       // Reply to the cast with mini-app link
-      await this.replyToCast(cast.hash, `🧟‍♂️ BITE SUCCESSFUL! @${targetUsername} has been bitten and can claim 1 $ZOMBIE to join the undead horde!
+      try {
+        await this.replyToCast(cast.hash, `🧟‍♂️ BITE SUCCESSFUL! @${targetUsername} has been bitten and can claim 1 $ZOMBIE to join the undead horde!
 
 🎃 Play ZOMBIEFICATION: https://farcaster.xyz/miniapps/pK1eGntYKwcA/zombification`);
+      } catch (replyError) {
+        logger.error('Failed to reply to cast for successful bite:', replyError);
+        // Don't throw - bite was recorded successfully
+      }
 
     } catch (error) {
       await client.query('ROLLBACK');
