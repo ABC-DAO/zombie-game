@@ -53,6 +53,9 @@ const db = require('./services/database');
 // Import batch processor
 const { startBatchProcessor } = require('./services/batchProcessor');
 
+// Import zombie bite bot
+const ZombieBiteBot = require('./services/zombieBiteBot');
+
 // Import routes with error handling
 console.log('🔍 INDEX: About to import routes...');
 
@@ -279,6 +282,15 @@ async function startServer() {
 
   // Start batch processor for daily tip cycles
   startBatchProcessor();
+
+  // Start zombie bite bot if environment variables are set
+  if (process.env.FARCASTER_BOT_FID && process.env.NEYNAR_API_KEY) {
+    const zombieBot = new ZombieBiteBot();
+    zombieBot.start();
+    logger.info('🧟‍♂️ Zombie bite bot started');
+  } else {
+    logger.warn('⚠️  Zombie bite bot not started - missing FARCASTER_BOT_FID or NEYNAR_API_KEY');
+  }
 
   // Start server
   app.listen(PORT, () => {
