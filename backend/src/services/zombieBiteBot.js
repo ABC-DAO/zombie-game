@@ -36,8 +36,9 @@ class ZombieBiteBot {
     this.isRunning = true;
     logger.info('🧟‍♂️ Starting zombie bite bot monitoring...');
     
-    // Start monitoring mentions
+    // Start monitoring mentions and game state
     this.monitorMentions();
+    this.monitorGameEnd();
   }
 
   async stop() {
@@ -218,6 +219,24 @@ class ZombieBiteBot {
     try {
       await client.query('BEGIN');
 
+      // Check if game is active
+      const gameActiveResult = await client.query('SELECT is_zombie_game_active() as is_active');
+      const isGameActive = gameActiveResult.rows[0].is_active;
+
+      // If game hasn't started and this is Dylan (Patient Zero), start the game
+      if (!isGameActive && zombieUser.farcaster_fid === 8573) {
+        await client.query('SELECT start_zombie_game($1)', [zombieUser.farcaster_fid]);
+        logger.info('🚨 GAME STARTED! Patient Zero Dylan has sent the first bite - 12 hour timer begins!');
+        
+        // Post game start announcement
+        await this.replyToCast(cast.hash, '🚨 THE ZOMBIE APOCALYPSE HAS BEGUN! 🚨\n\n12-hour infection period started! Tag @zombie-bite @username to spread the virus!\n\nGame ends at ' + new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString() + ' CST');
+      } else if (!isGameActive) {
+        // Game not active and not started by Patient Zero
+        await client.query('ROLLBACK');
+        await this.replyToCast(cast.hash, '⏰ The zombie apocalypse hasn\'t started yet! Only Patient Zero can begin the infection...');
+        return;
+      }
+
       // Get target user by username
       const userResponse = await axios.get(`https://api.neynar.com/v2/farcaster/user/by_username?username=${targetUsername}`, {
         headers: {
@@ -273,6 +292,78 @@ class ZombieBiteBot {
       logger.error('Error processing bite:', error);
     } finally {
       client.release();
+    }
+  }
+
+  async monitorGameEnd() {
+    while (this.isRunning) {
+      try {
+        await this.checkGameEnd();
+        
+        // Check every minute for game end
+        await new Promise(resolve => setTimeout(resolve, 60000));
+      } catch (error) {
+        logger.error('Error monitoring game end:', error);
+        await new Promise(resolve => setTimeout(resolve, 60000));
+      }
+    }
+  }
+
+  async checkGameEnd() {
+    const client = await db.getClient();
+    
+    try {
+      // Check if game just ended
+      const gameStateResult = await client.query(`
+        SELECT is_active, game_ends_at, final_cast_sent, total_bites_sent
+        FROM zombie_game_state zgs
+        LEFT JOIN (
+          SELECT COUNT(*) as total_bites_sent FROM zombie_bites
+        ) stats ON true
+        WHERE zgs.id = 1
+      `);
+      
+      if (gameStateResult.rows.length === 0) return;
+      
+      const gameState = gameStateResult.rows[0];
+      
+      // If game ended and we haven't sent final cast yet
+      if (!gameState.is_active && gameState.game_ends_at && !gameState.final_cast_sent) {
+        await this.sendGameEndCast(gameState.total_bites_sent || 0);
+        
+        // Mark final cast as sent
+        await client.query(`
+          UPDATE zombie_game_state 
+          SET final_cast_sent = true, updated_at = NOW()
+          WHERE id = 1
+        `);
+      }
+    } finally {
+      client.release();
+    }
+  }
+
+  async sendGameEndCast(totalBites) {
+    try {
+      const message = `🧟‍♂️ THE ZOMBIE APOCALYPSE HAS ENDED! 🧟‍♂️
+
+Thank you to everyone who participated in ZOMBIEFICATION - Halloween 2025!
+
+📊 Final Stats:
+🦷 Total Bites: ${totalBites}
+🧟‍♂️ Zombies Created: [Check zombie.epicdylan.com]
+
+🎁 Stay tuned for reward distribution announcements!
+
+An ABC_DAO Halloween experiment 🎃`;
+
+      // TODO: Implement actual cast posting
+      logger.info(`🎉 GAME END CAST: ${message}`);
+      
+      // When signer is setup:
+      // await this.postCast(message);
+    } catch (error) {
+      logger.error('Error sending game end cast:', error);
     }
   }
 

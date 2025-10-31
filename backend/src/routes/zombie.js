@@ -41,15 +41,15 @@ router.get('/game-status', async (req, res) => {
   }
 });
 
-// GET /api/zombie/stats - Get overall game statistics
+// GET /api/zombie/stats - Get overall game statistics with timer
 router.get('/stats', async (req, res) => {
   try {
     logger.info('🧟‍♂️ Fetching zombie game stats');
     const client = await db.getClient();
     
-    // Use the zombie_game_stats view we created
+    // Use the enhanced zombie_game_stats_with_timer view
     try {
-      const result = await client.query('SELECT * FROM zombie_game_stats');
+      const result = await client.query('SELECT * FROM zombie_game_stats_with_timer');
       const stats = result.rows[0];
       
       res.json({
@@ -59,7 +59,12 @@ router.get('/stats', async (req, res) => {
           totalHumans: parseInt(stats.total_humans || 0),
           totalBites: parseInt(stats.total_bites || 0),
           pendingBites: parseInt(stats.pending_bites || 0),
-          claimedBites: parseInt(stats.claimed_bites || 0)
+          claimedBites: parseInt(stats.claimed_bites || 0),
+          gameActive: !!stats.is_active,
+          gameStartedAt: stats.game_started_at,
+          gameEndsAt: stats.game_ends_at,
+          secondsRemaining: stats.seconds_remaining,
+          firstBiteByFid: stats.first_bite_by_fid
         }
       });
     } catch (dbError) {
@@ -71,7 +76,13 @@ router.get('/stats', async (req, res) => {
           totalZombies: 0,
           totalHumans: 0,
           totalBites: 0,
-          totalBitesReceived: 0
+          pendingBites: 0,
+          claimedBites: 0,
+          gameActive: false,
+          gameStartedAt: null,
+          gameEndsAt: null,
+          secondsRemaining: null,
+          firstBiteByFid: null
         }
       });
     }
