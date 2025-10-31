@@ -63,14 +63,15 @@ class ZombieBiteBot {
   async checkForMentions() {
     try {
       // Get mentions of the zombie-bite bot
-      const response = await axios.get(`https://api.neynar.com/v2/farcaster/mentions`, {
+      const response = await axios.get(`https://api.neynar.com/v2/farcaster/notifications`, {
         headers: {
           'accept': 'application/json',
           'api_key': this.neynarApiKey
         },
         params: {
           fid: this.botFid,
-          limit: 50
+          type: 'mentions',
+          limit: 25
         }
       });
 
@@ -82,7 +83,13 @@ class ZombieBiteBot {
         }
       }
     } catch (error) {
-      logger.error('Error checking for mentions:', error.message);
+      logger.error('Error checking for mentions:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url
+      });
     }
   }
 
@@ -357,11 +364,24 @@ Thank you to everyone who participated in ZOMBIEFICATION - Halloween 2025!
 
 An ABC_DAO Halloween experiment 🎃`;
 
-      // TODO: Implement actual cast posting
-      logger.info(`🎉 GAME END CAST: ${message}`);
+      logger.info(`🎉 POSTING GAME END CAST: ${message}`);
       
-      // When signer is setup:
-      // await this.postCast(message);
+      const response = await axios.post('https://api.neynar.com/v2/farcaster/cast', {
+        text: message,
+        signer_uuid: this.neynarUuid
+      }, {
+        headers: {
+          'accept': 'application/json',
+          'api_key': this.neynarApiKey,
+          'content-type': 'application/json'
+        }
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        logger.info('✅ Game end cast posted successfully');
+      } else {
+        logger.error('❌ Failed to post game end cast:', response.data);
+      }
     } catch (error) {
       logger.error('Error sending game end cast:', error);
     }
@@ -369,22 +389,27 @@ An ABC_DAO Halloween experiment 🎃`;
 
   async replyToCast(parentHash, message) {
     try {
-      // This would require Neynar's signer API to post casts
-      // For now, just log what we would reply
-      logger.info(`🤖 Would reply to ${parentHash}: ${message}`);
+      logger.info(`🤖 Replying to ${parentHash}: ${message}`);
       
-      // TODO: Implement actual cast posting when you have signer setup
-      // const response = await axios.post('https://api.neynar.com/v2/farcaster/cast', {
-      //   text: message,
-      //   parent: parentHash,
-      //   signer_uuid: this.neynarUuid
-      // }, {
-      //   headers: {
-      //     'accept': 'application/json',
-      //     'api_key': this.neynarApiKey,
-      //     'content-type': 'application/json'
-      //   }
-      // });
+      const response = await axios.post('https://api.neynar.com/v2/farcaster/cast', {
+        text: message,
+        parent: parentHash,
+        signer_uuid: this.neynarUuid
+      }, {
+        headers: {
+          'accept': 'application/json',
+          'api_key': this.neynarApiKey,
+          'content-type': 'application/json'
+        }
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        logger.info('✅ Cast posted successfully to Farcaster');
+        return response.data;
+      } else {
+        logger.error('❌ Failed to post cast:', response.data);
+        throw new Error(`Farcaster API error: ${JSON.stringify(response.data)}`);
+      }
     } catch (error) {
       logger.error('Error replying to cast:', error);
     }
