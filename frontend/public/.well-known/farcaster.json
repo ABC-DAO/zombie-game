@@ -1,24 +1,35 @@
 {
-  
-  "accountAssociation": {
-    "header": "eyJmaWQiOjg1NzMsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg1Mjk0MjMzMTViMTVEQTk2OTFBYkM1QjdjMWNiMEQwNDUwOUIyMmIwIn0",
-    "payload": "eyJkb21haW4iOiJ6b21iaWUuZXBpY2R5bGFuLmNvbSJ9",
-    "signature": "RweQGPIry0mH4rmXsnFUTQA8Ndi20ZdyAZ1dC0gQsSFM6tUjvBpyIrcWNdEOeADVWiI6AOV2MYOgO2CNeMw8dhw="
-  },
-
   "miniapp": {
+    "name": "ZOMBIEFICATION",
     "version": "1",
-    "name": "ZOMBIFICATION",
     "iconUrl": "https://zombie.epicdylan.com/ZOMBIES.png",
     "homeUrl": "https://zombie.epicdylan.com",
-    "imageUrl": "https://zombie.epicdylan.com/SteakNStake.png",
-    "buttonTitle": "Join The Zombie Apocalypse",
-    "splashImageUrl": "https://zombie.epicdylan.com/SteakNStake.png",
-    "splashBackgroundColor": "#000000",
-    "webhookUrl": "https://happy-determination-production.up.railway.app/api/farcaster/webhook",
-    "subtitle": "Join the horde.",
-    "description": "Mmmmmm.... brainzzzz.",
+    "imageUrl": "https://zombie.epicdylan.com/image.png",
+    "buttonTitle": "🧟‍♂️ Join Apocalypse",
+    "splashImageUrl": "https://zombie.epicdylan.com/splash.png",
+    "splashBackgroundColor": "#0a0a0a",
+    "webhookUrl": "https://zombie-game-production.up.railway.app/api/farcaster/webhook",
+    "subtitle": "Halloween zombie infection game",
+    "description": "Join the Halloween zombie apocalypse on Farcaster. Tip ZOMBIE to infect humans, claim tips to become undead, and share the final prize pool. Patient Zero starts the 12-hour infection period - will you survive or succumb to the bite",
     "primaryCategory": "games",
-    "tags": ["social", "community", "steak", "staking", "tipping"]
+    "screenshotUrls": [
+      "https://zombie.epicdylan.com/image.png"
+    ],
+    "heroImageUrl": "https://zombie.epicdylan.com/ZOMBIES.png",
+    "tags": [
+      "zombie",
+      "halloween",
+      "games"
+    ],
+    "tagline": "Spread the virus, win a prize",
+    "ogDescription": "Join the zombie apocalypse! Tip ZOMBIE to bite humans and spread the infection.",
+    "ogTitle": "Halloween Zombiefication Game",
+    "ogImageUrl": "https://zombie.epicdylan.com/ZOMBIES.png",
+    "castShareUrl": "https://warpcast.com/~/compose?text=🧟‍♂️+The+zombie+apocalypse+has+begun!+Join+ZOMBIEFICATION+at+zombie.epicdylan.com"
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjg1NzMsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgxOEE4NWFkMzQxYjJENkEyYmQ2N2ZiYjEwNEI0ODI3QjkyMmEyQTNjIn0",
+    "payload": "eyJkb21haW4iOiJ6b21iaWUuZXBpY2R5bGFuLmNvbSJ9",
+    "signature": "waWwrI9mouj8JMTUI4w1ZooCxTSHOCDnGjTsUI09cUpks8iTTJ2ZPYVklY22y4AKGHAULVIuNR+Td2pBBh4/Lhw="
   }
 }
