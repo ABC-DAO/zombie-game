@@ -51,8 +51,8 @@ class ZombieBiteBot {
       try {
         await this.checkForMentions();
         
-        // Check every 30 seconds (reduced from 10s for better performance)
-        await new Promise(resolve => setTimeout(resolve, 30000));
+        // Check every 60 seconds (increased from 30s to reduce database load)
+        await new Promise(resolve => setTimeout(resolve, 60000));
       } catch (error) {
         logger.error('Error in zombie bite bot monitoring:', error);
         await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute on error
@@ -551,8 +551,8 @@ Game ends at ${new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString()} 
       try {
         await this.checkGameEnd();
         
-        // Check every minute for game end
-        await new Promise(resolve => setTimeout(resolve, 60000));
+        // Check every 2 minutes for game end (reduced database load)
+        await new Promise(resolve => setTimeout(resolve, 120000));
       } catch (error) {
         logger.error('Error monitoring game end:', error);
         await new Promise(resolve => setTimeout(resolve, 60000));

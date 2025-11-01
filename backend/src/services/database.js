@@ -18,17 +18,19 @@ if (process.env.DATABASE_URL) {
   console.log('🔍 DATABASE: Database name =', urlParts[urlParts.length - 1]);
 }
 
-// Create connection pool
+// Create connection pool - EMERGENCY SETTINGS for connection issues
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/steaknstake',
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20, // Increased from 10 to handle more concurrent requests
-  min: 3, // Increased minimum connections
-  idleTimeoutMillis: 60000, // Keep at 60 seconds
-  connectionTimeoutMillis: 15000, // Reduced from 20 to 15 seconds for faster failures
-  acquireTimeoutMillis: 20000, // Reduced timeout for quicker failures
-  statementTimeout: 25000, // Reduced from 30 to 25 seconds
-  allowExitOnIdle: true, // Allow pool to exit if all connections are idle
+  max: 5, // Drastically reduced from 20 to prevent overwhelming database
+  min: 1, // Reduced minimum connections
+  idleTimeoutMillis: 30000, // Reduced to 30 seconds
+  connectionTimeoutMillis: 8000, // Reduced to 8 seconds for faster failures
+  acquireTimeoutMillis: 10000, // Reduced to 10 seconds for quicker failures  
+  statementTimeout: 15000, // Reduced to 15 seconds
+  allowExitOnIdle: true,
+  keepAlive: true, // Enable TCP keep-alive
+  keepAliveInitialDelayMillis: 10000, // Initial delay for keep-alive
 });
 
 // Handle pool errors
